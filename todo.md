@@ -3,7 +3,7 @@
 ## Divyam
  - [ ] Basic Frontend and Page Layout
     - [ ] Home Page
-    - [ ] Dashboard
+    - [x] Dashboard (Common dashboard ready)
         - [ ] Student
         - [ ] Professor
 
