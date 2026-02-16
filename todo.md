@@ -1,8 +1,7 @@
-# 2 Feb 2026
+# First Iteration
 
 ## Divyam
  - [ ] Basic Frontend and Page Layout
-    - [ ] Home Page
     - [x] Dashboard (Common dashboard ready)
         - [ ] Student
         - [ ] Professor
