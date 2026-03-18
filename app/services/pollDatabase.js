@@ -1,593 +1,403 @@
-// app/services/pollDatabase.js
-// ============================================================
-// Database Init and Creation — Polls
-// Poll States: "draft" | "active" | "closed"
-//   draft  → Poll created, not visible to students
-//   active → Students can view and respond
-//   closed → No new responses accepted
-// ============================================================
+
 
 import { db, realtimeDb } from '../../lib/firebase/init';
 import {
-  collection,
-  addDoc,
-  getDocs,
-  doc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  increment,
+  collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc,
+  query, where, orderBy, serverTimestamp, increment,
 } from 'firebase/firestore';
 import { ref, set, remove, onValue, get } from 'firebase/database';
 
-// ── Constants ──
-const POLLS_COLLECTION = 'polls';
-const RESPONSES_COLLECTION = 'responses';
+const POLLS = 'polls';
+const RESPONSES = 'responses';
 
-export const PollStatus = {
-  DRAFT: 'draft',
-  ACTIVE: 'active',
-  CLOSED: 'closed',
-};
+export const PollStatus = { DRAFT: 'draft', ACTIVE: 'active', CLOSED: 'closed' };
 
-// ── Main Database Service ──
 export const pollDatabase = {
 
-  // ==================== CRUD ====================
+  // ── createPoll() — Class Diagram + State: → Inactive ──
+  async createPoll(pollData) {
+    const v = validatePollData(pollData);
+    if (!v.isValid) throw new Error(`Validation failed: ${v.errors.join(', ')}`);
 
-  async getAllPolls() {
-    try {
-      const q = query(
-        collection(db, POLLS_COLLECTION),
-        orderBy('createdAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch (error) {
-      console.error('Error getting polls:', error);
-      return [];
-    }
+    const pollDoc = {
+      question: pollData.question.trim(),
+      options: pollData.options.map(o => o.trim()),
+      // Class Diagram: correctOptions: Array<String> — supports multiple correct answers
+      correctOptions: Array.isArray(pollData.correctOptions)
+        ? pollData.correctOptions
+        : [pollData.correctOption ?? 0],
+      // Backward compat: single correctOption index
+      correctOption: Array.isArray(pollData.correctOptions)
+        ? pollData.correctOptions[0]
+        : (pollData.correctOption ?? 0),
+      // Class Diagram: imageUrls: Array<String>
+      imageUrls: pollData.imageUrls || [],
+      timer: pollData.timer || 60,                  // Class Diagram: time: Integer
+      status: PollStatus.DRAFT,                     // Class Diagram: status: enum<Status>
+      courseId: pollData.courseId,
+      courseName: pollData.courseName || '',
+      professorId: pollData.professorId,
+      professorName: pollData.professorName || 'Professor',
+      totalResponses: 0,
+      count: {},                                    // Class Diagram: count: map<String, Integer>
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      startedAt: null,                              // Class Diagram: startTime
+      endedAt: null,                                // Class Diagram: endTime
+    };
+
+    const docRef = await addDoc(collection(db, POLLS), pollDoc);
+    return docRef.id;
   },
 
   async getPollById(pollId) {
-    try {
-      const snap = await getDoc(doc(db, POLLS_COLLECTION, pollId));
-      if (!snap.exists()) return null;
-      return { id: snap.id, ...snap.data() };
-    } catch (error) {
-      console.error('Error getting poll:', error);
-      throw error;
-    }
+    const snap = await getDoc(doc(db, POLLS, pollId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() };
   },
 
-  async createPoll(pollData) {
-    const validation = validatePollData(pollData);
-    if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
-    }
-
+  async getAllPolls() {
     try {
-      const pollDoc = {
-        question: pollData.question.trim(),
-        options: pollData.options.map((o) => o.trim()),
-        correctOption: pollData.correctOption,
-        timer: pollData.timer || 60,
-        status: PollStatus.DRAFT,
-        courseId: pollData.courseId,
-        courseName: pollData.courseName || '',
-        professorId: pollData.professorId,
-        professorName: pollData.professorName || 'Professor',
-        totalResponses: 0,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        startedAt: null,
-        endedAt: null,
-      };
-
-      const docRef = await addDoc(collection(db, POLLS_COLLECTION), pollDoc);
-      console.log('✅ Poll created with ID:', docRef.id);
-      return docRef.id;
-    } catch (error) {
-      console.error('❌ Error creating poll:', error);
-      throw error;
-    }
+      const q = query(collection(db, POLLS), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) { console.error('Error getting polls:', e); return []; }
   },
 
-  async updatePoll(pollId, updateData) {
-    try {
-      const poll = await this.getPollById(pollId);
-      if (!poll) throw new Error('Poll not found.');
-      if (poll.status === PollStatus.CLOSED) {
-        throw new Error('Cannot update a closed poll.');
-      }
-
-      const immutable = ['createdAt', 'professorId', 'courseId'];
-      for (const key of immutable) {
-        if (key in updateData) delete updateData[key];
-      }
-
-      const pollRef = doc(db, POLLS_COLLECTION, pollId);
-      await updateDoc(pollRef, {
-        ...updateData,
-        updatedAt: serverTimestamp(),
-      });
-      console.log('✅ Poll updated:', pollId);
-      return true;
-    } catch (error) {
-      console.error('❌ Error updating poll:', error);
-      throw error;
-    }
+  // ── updatePoll() — Class Diagram ──
+  async updatePoll(pollId, updates) {
+    const poll = await this.getPollById(pollId);
+    if (!poll) throw new Error('Poll not found.');
+    if (poll.status === PollStatus.CLOSED) throw new Error('Cannot update a closed poll.');
+    ['createdAt', 'professorId', 'courseId'].forEach(k => delete updates[k]);
+    await updateDoc(doc(db, POLLS, pollId), { ...updates, updatedAt: serverTimestamp() });
+    return true;
   },
 
+  // ── livePoll() / endPoll() — State transitions ──
   async updatePollStatus(pollId, newStatus) {
-    try {
-      const poll = await this.getPollById(pollId);
-      if (!poll) throw new Error('Poll not found.');
+    const poll = await this.getPollById(pollId);
+    if (!poll) throw new Error('Poll not found.');
+    if (newStatus === 'active' && poll.status !== 'draft')
+      throw new Error(`Cannot start — status is "${poll.status}", must be "draft".`);
+    if (newStatus === 'closed' && poll.status !== 'active')
+      throw new Error(`Cannot close — status is "${poll.status}", must be "active".`);
 
-      if (newStatus === PollStatus.ACTIVE && poll.status !== PollStatus.DRAFT) {
-        throw new Error(`Cannot start poll — current status is "${poll.status}". Must be "draft".`);
-      }
-      if (newStatus === PollStatus.CLOSED && poll.status !== PollStatus.ACTIVE) {
-        throw new Error(`Cannot close poll — current status is "${poll.status}". Must be "active".`);
-      }
+    const update = { status: newStatus, updatedAt: serverTimestamp() };
+    if (newStatus === 'active') update.startedAt = serverTimestamp();
+    if (newStatus === 'closed') update.endedAt = serverTimestamp();
+    await updateDoc(doc(db, POLLS, pollId), update);
 
-      const pollRef = doc(db, POLLS_COLLECTION, pollId);
-      const updateData = {
-        status: newStatus,
-        updatedAt: serverTimestamp(),
-      };
-
-      if (newStatus === PollStatus.ACTIVE) {
-        updateData.startedAt = serverTimestamp();
-      } else if (newStatus === PollStatus.CLOSED) {
-        updateData.endedAt = serverTimestamp();
-      }
-
-      await updateDoc(pollRef, updateData);
-
-      if (newStatus === PollStatus.ACTIVE) {
-        await this.startLivePoll(pollId, { ...poll, ...updateData });
-      }
-      if (newStatus === PollStatus.CLOSED) {
-        await this.stopLivePoll(pollId);
-      }
-
-      console.log(`✅ Poll ${pollId} status → ${newStatus}`);
-      return true;
-    } catch (error) {
-      console.error('❌ Error updating poll status:', error);
-      throw error;
-    }
+    if (newStatus === 'active') await this.startLivePoll(pollId, { ...poll, ...update });
+    if (newStatus === 'closed') await this.stopLivePoll(pollId);
+    return true;
   },
 
+  // ── deletePoll() — Class Diagram ──
   async deletePoll(pollId) {
-    try {
-      const poll = await this.getPollById(pollId);
-      if (!poll) throw new Error('Poll not found.');
-      if (poll.status === PollStatus.ACTIVE) {
-        throw new Error('Cannot delete an active poll. Close it first.');
-      }
-
-      await deleteDoc(doc(db, POLLS_COLLECTION, pollId));
-      await remove(ref(realtimeDb, `livePolls/${pollId}`)).catch(() => {});
-
-      console.log('🗑️ Poll deleted:', pollId);
-      return true;
-    } catch (error) {
-      console.error('❌ Error deleting poll:', error);
-      throw error;
-    }
+    const poll = await this.getPollById(pollId);
+    if (!poll) throw new Error('Poll not found.');
+    if (poll.status === 'active') throw new Error('Cannot delete active poll.');
+    await deleteDoc(doc(db, POLLS, pollId));
+    await remove(ref(realtimeDb, `livePolls/${pollId}`)).catch(() => {});
+    return true;
   },
 
-  // ==================== FILTERING & SEARCH ====================
-
+  // ── QUERIES ──
   async getPollsByCourse(courseId) {
-    try {
-      const q = query(
-        collection(db, POLLS_COLLECTION),
-        where('courseId', '==', courseId),
-        orderBy('createdAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch (error) {
-      console.error('Error getting course polls:', error);
-      return [];
-    }
+    const q = query(collection(db, POLLS), where('courseId', '==', courseId), orderBy('createdAt', 'desc'));
+    return (await getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() }));
   },
-
   async getPollsByStatus(status) {
-    try {
-      const q = query(
-        collection(db, POLLS_COLLECTION),
-        where('status', '==', status),
-        orderBy('createdAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch (error) {
-      console.error('Error getting polls by status:', error);
-      return [];
-    }
+    const q = query(collection(db, POLLS), where('status', '==', status), orderBy('createdAt', 'desc'));
+    return (await getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() }));
   },
-
   async getPollsByProfessor(professorId) {
-    try {
-      const q = query(
-        collection(db, POLLS_COLLECTION),
-        where('professorId', '==', professorId),
-        orderBy('createdAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch (error) {
-      console.error('Error getting professor polls:', error);
-      return [];
-    }
+    const q = query(collection(db, POLLS), where('professorId', '==', professorId), orderBy('createdAt', 'desc'));
+    return (await getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() }));
   },
-
   async getActivePollByCourse(courseId) {
-    try {
-      const q = query(
-        collection(db, POLLS_COLLECTION),
-        where('courseId', '==', courseId),
-        where('status', '==', PollStatus.ACTIVE)
-      );
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) return null;
-      const d = snapshot.docs[0];
-      return { id: d.id, ...d.data() };
-    } catch (error) {
-      console.error('Error getting active poll:', error);
-      return null;
-    }
+    const q = query(collection(db, POLLS), where('courseId', '==', courseId), where('status', '==', 'active'));
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    const d = snap.docs[0];
+    return { id: d.id, ...d.data() };
   },
-
-  async searchPolls(searchTerm) {
-    try {
-      const allPolls = await this.getAllPolls();
-      const term = searchTerm.toLowerCase();
-      return allPolls.filter(
-        (p) =>
-          p.question.toLowerCase().includes(term) ||
-          p.courseId.toLowerCase().includes(term)
-      );
-    } catch (error) {
-      console.error('Error searching polls:', error);
-      return [];
-    }
-  },
-
   async getPollHistory(courseId) {
-    try {
-      const q = query(
-        collection(db, POLLS_COLLECTION),
-        where('courseId', '==', courseId),
-        where('status', '==', PollStatus.CLOSED),
-        orderBy('endedAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch (error) {
-      console.error('Error getting poll history:', error);
-      return [];
-    }
+    const q = query(collection(db, POLLS), where('courseId', '==', courseId), where('status', '==', 'closed'), orderBy('endedAt', 'desc'));
+    return (await getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+  async searchPolls(term) {
+    const all = await this.getAllPolls();
+    const t = term.toLowerCase();
+    return all.filter(p => p.question.toLowerCase().includes(t) || p.courseId.toLowerCase().includes(t));
   },
 
-  // ==================== REALTIME FEATURES ====================
-
+  // ── REALTIME DB ──
   async startLivePoll(pollId, pollData) {
-    try {
-      await set(ref(realtimeDb, `livePolls/${pollId}`), {
-        question: pollData.question,
-        options: pollData.options,
-        correctOption: pollData.correctOption,
-        timer: pollData.timer,
-        courseId: pollData.courseId,
-        courseName: pollData.courseName,
-        professorId: pollData.professorId,
-        professorName: pollData.professorName,
-        liveStatus: 'active',
-        liveStartedAt: Date.now(),
-        responses: {},
-        responseCount: 0,
-      });
-      console.log('🎯 Live poll started:', pollId);
-      return true;
-    } catch (error) {
-      console.error('❌ Error starting live poll:', error);
-      throw error;
-    }
+    await set(ref(realtimeDb, `livePolls/${pollId}`), {
+      question: pollData.question, options: pollData.options,
+      correctOption: pollData.correctOption, correctOptions: pollData.correctOptions || [pollData.correctOption],
+      imageUrls: pollData.imageUrls || [],
+      timer: pollData.timer, courseId: pollData.courseId, courseName: pollData.courseName,
+      professorId: pollData.professorId, professorName: pollData.professorName,
+      liveStatus: 'active', liveStartedAt: Date.now(),
+      responses: {}, responseCount: 0,
+    });
+    return true;
   },
 
   async stopLivePoll(pollId) {
-    try {
-      await remove(ref(realtimeDb, `livePolls/${pollId}`));
-      console.log('🛑 Live poll stopped:', pollId);
-      return true;
-    } catch (error) {
-      console.error('❌ Error stopping live poll:', error);
-      throw error;
-    }
+    await remove(ref(realtimeDb, `livePolls/${pollId}`));
+    return true;
   },
 
+  // ── pollResponse() — Student_Poll class diagram ──
+  // Stores response as Array<String> to support multiple selections
   async submitResponse(pollId, studentId, studentName, responseIndex) {
-    try {
-      const existingRef = ref(realtimeDb, `livePolls/${pollId}/responses/${studentId}`);
-      const existingSnap = await get(existingRef);
-      if (existingSnap.exists()) {
-        throw new Error('You have already submitted a response for this poll.');
-      }
+    const existingRef = ref(realtimeDb, `livePolls/${pollId}/responses/${studentId}`);
+    const existingSnap = await get(existingRef);
+    if (existingSnap.exists()) throw new Error('Already submitted a response for this poll.');
 
-      const responseData = {
-        studentId,
-        studentName,
-        response: responseIndex,
-        timestamp: Date.now(),
-        isCorrect: null,
-      };
+    // Support both single response (number) and multiple (array)
+    const responseArr = Array.isArray(responseIndex) ? responseIndex : [responseIndex];
 
-      await set(existingRef, responseData);
+    const data = {
+      studentId, studentName,
+      response: responseArr[0],       // backward compat: single number
+      responses: responseArr,          // Class Diagram: Student_Poll.response: Array<String>
+      timestamp: Date.now(),
+      isCorrect: null,
+    };
 
-      await addDoc(collection(db, RESPONSES_COLLECTION), {
-        pollId,
-        ...responseData,
-        submittedAt: serverTimestamp(),
-      });
+    await set(existingRef, data);
+    await addDoc(collection(db, RESPONSES), { pollId, ...data, submittedAt: serverTimestamp() });
 
-      const countRef = ref(realtimeDb, `livePolls/${pollId}/responseCount`);
-      const countSnap = await get(countRef);
-      await set(countRef, (countSnap.val() || 0) + 1);
+    // Update count map — Class Diagram: Polls.count: map<String, Integer>
+    const poll = await this.getPollById(pollId);
+    const newCount = { ...(poll.count || {}) };
+    responseArr.forEach(r => { newCount[String(r)] = (newCount[String(r)] || 0) + 1; });
+    await updateDoc(doc(db, POLLS, pollId), { count: newCount, totalResponses: increment(1), updatedAt: serverTimestamp() });
 
-      const pollDocRef = doc(db, POLLS_COLLECTION, pollId);
-      await updateDoc(pollDocRef, {
-        totalResponses: increment(1),
-      });
+    const countRef = ref(realtimeDb, `livePolls/${pollId}/responseCount`);
+    const countSnap = await get(countRef);
+    await set(countRef, (countSnap.val() || 0) + 1);
 
-      console.log('📝 Response submitted by:', studentName);
-      return true;
-    } catch (error) {
-      console.error('❌ Error submitting response:', error);
-      throw error;
-    }
+    return true;
   },
 
   async getLivePollResults(pollId) {
-    try {
-      const pollRef = ref(realtimeDb, `livePolls/${pollId}`);
-      const snapshot = await get(pollRef);
-      const livePoll = snapshot.val();
-      if (!livePoll) return null;
-
-      const responses = livePoll.responses || {};
-      const total = Object.keys(responses).length;
-      const optionCount = livePoll.options ? livePoll.options.length : 4;
-      const counts = {};
-      for (let i = 0; i < optionCount; i++) counts[i] = 0;
-
-      Object.values(responses).forEach((r) => {
-        if (counts[r.response] !== undefined) counts[r.response]++;
-      });
-
-      const percentages = {};
-      for (let i = 0; i < optionCount; i++) {
-        percentages[i] = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
-      }
-
-      return {
-        pollId,
-        question: livePoll.question,
-        options: livePoll.options,
-        correctOption: livePoll.correctOption,
-        totalResponses: total,
-        optionCounts: counts,
-        percentages,
-        responses: Object.values(responses),
-      };
-    } catch (error) {
-      console.error('Error getting live results:', error);
-      return null;
-    }
+    const snap = await get(ref(realtimeDb, `livePolls/${pollId}`));
+    const lp = snap.val();
+    if (!lp) return null;
+    const responses = lp.responses || {};
+    const total = Object.keys(responses).length;
+    const n = lp.options ? lp.options.length : 4;
+    const counts = {}; const pcts = {};
+    for (let i = 0; i < n; i++) counts[i] = 0;
+    Object.values(responses).forEach(r => { const idx = r.response ?? r.responses?.[0]; if (counts[idx] !== undefined) counts[idx]++; });
+    for (let i = 0; i < n; i++) pcts[i] = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
+    return { pollId, question: lp.question, options: lp.options, correctOption: lp.correctOption, correctOptions: lp.correctOptions, totalResponses: total, optionCounts: counts, percentages: pcts, responses: Object.values(responses) };
   },
 
-  listenToLivePoll(pollId, callback) {
-    const pollRef = ref(realtimeDb, `livePolls/${pollId}`);
-    return onValue(pollRef, (snapshot) => callback(snapshot.val()));
-  },
+  listenToLivePoll(pollId, cb) { return onValue(ref(realtimeDb, `livePolls/${pollId}`), snap => cb(snap.val())); },
+  listenToLiveResponses(pollId, cb) { return onValue(ref(realtimeDb, `livePolls/${pollId}/responses`), snap => cb(snap.val() || {})); },
 
-  listenToLiveResponses(pollId, callback) {
-    const responsesRef = ref(realtimeDb, `livePolls/${pollId}/responses`);
-    return onValue(responsesRef, (snapshot) => callback(snapshot.val() || {}));
-  },
-
-  // ==================== ANALYTICS ====================
-
+  // ── resultCalculation() — Class Diagram + State Diagram: Ended → resultCalculation() ──
+  // Also: studentPerformance() from Student_Poll class
   async getPollStats(pollId) {
-    try {
-      const poll = await this.getPollById(pollId);
-      if (!poll) return null;
+    const poll = await this.getPollById(pollId);
+    if (!poll) return null;
+    const q = query(collection(db, RESPONSES), where('pollId', '==', pollId));
+    const snap = await getDocs(q);
+    const responses = snap.docs.map(d => d.data());
 
-      const q = query(
-        collection(db, RESPONSES_COLLECTION),
-        where('pollId', '==', pollId)
-      );
-      const snapshot = await getDocs(q);
-      const responses = snapshot.docs.map((d) => d.data());
+    const total = responses.length;
+    const n = poll.options ? poll.options.length : 4;
+    const correctSet = new Set((poll.correctOptions || [poll.correctOption]).map(Number));
+    const counts = {}; for (let i = 0; i < n; i++) counts[i] = 0;
+    let correct = 0;
 
-      const total = responses.length;
-      const optionCount = poll.options ? poll.options.length : 4;
-      const counts = {};
-      for (let i = 0; i < optionCount; i++) counts[i] = 0;
+    responses.forEach(r => {
+      const selected = r.responses || [r.response];
+      selected.forEach(s => { if (counts[s] !== undefined) counts[s]++; });
+      // Check if student's answer matches any correct option
+      if (selected.some(s => correctSet.has(Number(s)))) correct++;
+    });
 
-      let correctCount = 0;
-      responses.forEach((r) => {
-        if (counts[r.response] !== undefined) counts[r.response]++;
-        if (r.response === poll.correctOption) correctCount++;
-      });
+    const pcts = {}; for (let i = 0; i < n; i++) pcts[i] = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
 
-      const percentages = {};
-      for (let i = 0; i < optionCount; i++) {
-        percentages[i] = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
-      }
-
-      const avgResponseTime =
-        responses.length > 0
-          ? Math.round(
-              responses.reduce((sum, r) => sum + (r.responseTime || 0), 0) /
-                responses.length
-            )
-          : 0;
-
-      return {
-        pollId,
-        question: poll.question,
-        options: poll.options,
-        correctOption: poll.correctOption,
-        totalResponses: total,
-        correctCount,
-        correctPercentage: total > 0 ? Math.round((correctCount / total) * 100) : 0,
-        optionCounts: counts,
-        percentages,
-        avgResponseTime,
-        responses: responses.slice(0, 50),
-      };
-    } catch (error) {
-      console.error('Error getting poll stats:', error);
-      return null;
-    }
+    return {
+      pollId, question: poll.question, options: poll.options,
+      correctOption: poll.correctOption, correctOptions: poll.correctOptions || [poll.correctOption],
+      imageUrls: poll.imageUrls || [],
+      totalResponses: total, correctCount: correct,
+      correctPercentage: total > 0 ? Math.round((correct / total) * 100) : 0,
+      optionCounts: counts, percentages: pcts,
+      count: counts,  // Class Diagram: count: map<String, Integer>
+      responses: responses.slice(0, 100),
+    };
   },
 
   async calculateResults(pollId) {
-    const stats = await this.getPollStats(pollId);
-    if (!stats) return null;
-
+    const s = await this.getPollStats(pollId);
+    if (!s) return null;
     return {
-      pollId,
-      questionText: stats.question,
-      correctOption: stats.correctOption,
-      totalResponses: stats.totalResponses,
-      distribution: stats.options.map((optText, idx) => ({
-        optionIndex: idx,
-        optionText: optText,
-        count: stats.optionCounts[idx] || 0,
-        percentage: stats.percentages[idx] || 0,
+      pollId, questionText: s.question, correctOption: s.correctOption,
+      correctOptions: s.correctOptions, totalResponses: s.totalResponses,
+      distribution: s.options.map((t, i) => ({
+        optionIndex: i, optionText: t,
+        count: s.optionCounts[i] || 0, percentage: s.percentages[i] || 0,
+        isCorrect: (s.correctOptions || [s.correctOption]).map(Number).includes(i),
       })),
     };
   },
 
-  // ==================== BATCH OPERATIONS ====================
-
-  async createMultiplePolls(pollsArray) {
+  // ── studentPerformance() — Student_Poll class diagram ──
+  // Returns a student's performance across all polls in a course
+  async getStudentPerformance(studentId, courseId) {
+    const polls = await this.getPollHistory(courseId);
     const results = [];
-    for (const pollData of pollsArray) {
-      try {
-        const pollId = await this.createPoll(pollData);
-        results.push({ success: true, pollId, data: pollData });
-      } catch (error) {
-        results.push({ success: false, error: error.message, data: pollData });
+
+    for (const poll of polls) {
+      const q = query(collection(db, RESPONSES), where('pollId', '==', poll.id), where('studentId', '==', studentId));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const resp = snap.docs[0].data();
+        const correctSet = new Set((poll.correctOptions || [poll.correctOption]).map(Number));
+        const selected = resp.responses || [resp.response];
+        const isCorrect = selected.some(s => correctSet.has(Number(s)));
+        results.push({ pollId: poll.id, question: poll.question, selected, isCorrect, correctOptions: poll.correctOptions });
+      } else {
+        results.push({ pollId: poll.id, question: poll.question, selected: [], isCorrect: false, missed: true });
       }
+    }
+
+    const total = results.length;
+    const correct = results.filter(r => r.isCorrect).length;
+    return { studentId, courseId, total, correct, percentage: total > 0 ? Math.round((correct / total) * 100) : 0, polls: results };
+  },
+
+  // ── BATCH ──
+  async createMultiplePolls(arr) {
+    const results = [];
+    for (const p of arr) {
+      try { const id = await this.createPoll(p); results.push({ success: true, pollId: id }); }
+      catch (e) { results.push({ success: false, error: e.message }); }
     }
     return results;
   },
+};
 
-  async archiveOldPolls(daysOld = 30) {
-    try {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+// ═══════════════════════════════════════════
+// EXPORT SERVICE — Sequence Diagram (ix): Export Poll Results
+// Generates CSV/JSON data for download
+// ═══════════════════════════════════════════
 
-      const allPolls = await this.getAllPolls();
-      const oldPolls = allPolls.filter(
-        (p) =>
-          p.createdAt &&
-          new Date(p.createdAt.seconds * 1000) < cutoffDate &&
-          p.status === PollStatus.CLOSED
-      );
+export const exportService = {
 
-      await Promise.all(
-        oldPolls.map((p) => this.updatePoll(p.id, { archived: true }))
-      );
-      console.log(`📦 Archived ${oldPolls.length} old polls`);
-      return oldPolls.length;
-    } catch (error) {
-      console.error('Error archiving polls:', error);
-      throw error;
-    }
+  // Export poll results as CSV string
+  async exportAsCSV(pollId) {
+    const stats = await pollDatabase.getPollStats(pollId);
+    if (!stats) throw new Error('Poll not found.');
+
+    const rows = [['Student ID', 'Student Name', 'Response', 'Is Correct', 'Timestamp']];
+    stats.responses.forEach(r => {
+      const selected = r.responses || [r.response];
+      const correctSet = new Set((stats.correctOptions || [stats.correctOption]).map(Number));
+      const isCorrect = selected.some(s => correctSet.has(Number(s)));
+      rows.push([r.studentId, r.studentName || 'Anonymous', selected.join(';'), isCorrect ? 'Yes' : 'No', r.timestamp || '']);
+    });
+
+    // Summary row
+    rows.push([]);
+    rows.push(['Summary']);
+    rows.push(['Total Responses', stats.totalResponses]);
+    rows.push(['Correct', stats.correctCount]);
+    rows.push(['Correct %', stats.correctPercentage + '%']);
+    stats.options.forEach((opt, i) => {
+      rows.push([`Option ${String.fromCharCode(65 + i)}: ${opt}`, stats.optionCounts[i], stats.percentages[i] + '%']);
+    });
+
+    return rows.map(r => r.join(',')).join('\n');
+  },
+
+  // Export as JSON
+  async exportAsJSON(pollId) {
+    const stats = await pollDatabase.getPollStats(pollId);
+    if (!stats) throw new Error('Poll not found.');
+    return JSON.stringify(stats, null, 2);
+  },
+
+  // Trigger download in browser
+  downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  // One-click export + download
+  async downloadCSV(pollId) {
+    const csv = await this.exportAsCSV(pollId);
+    this.downloadFile(csv, `poll-results-${pollId}.csv`, 'text/csv');
+  },
+
+  async downloadJSON(pollId) {
+    const json = await this.exportAsJSON(pollId);
+    this.downloadFile(json, `poll-results-${pollId}.json`, 'application/json');
   },
 };
 
-// ── Helper Functions ──
+// ── HELPERS ──
 
-export function validatePollData(pollData) {
+export function validatePollData(d) {
   const errors = [];
-  if (!pollData.question?.trim()) errors.push('Question is required');
-  if (!pollData.options || pollData.options.length < 2) errors.push('At least 2 options are required');
-  else if (pollData.options.some((opt) => !opt.trim())) errors.push('All options must have text');
-  if (pollData.correctOption === undefined || pollData.correctOption < 0 || pollData.correctOption >= (pollData.options?.length || 0))
-    errors.push('Valid correct option index is required');
-  if (!pollData.courseId?.trim()) errors.push('Course ID is required');
-  if (pollData.timer && (pollData.timer < 10 || pollData.timer > 300)) errors.push('Timer must be between 10 and 300 seconds');
+  if (!d.question?.trim()) errors.push('Question is required');
+  if (!d.options || d.options.length < 2) errors.push('At least 2 options required');
+  else if (d.options.some(o => !o.trim())) errors.push('All options must have text');
+
+  // Support both single correctOption and array correctOptions
+  if (Array.isArray(d.correctOptions)) {
+    if (d.correctOptions.length === 0) errors.push('At least one correct option required');
+    if (d.correctOptions.some(c => c < 0 || c >= (d.options?.length || 0))) errors.push('Correct option index out of range');
+  } else {
+    if (d.correctOption === undefined || d.correctOption < 0 || d.correctOption >= (d.options?.length || 0)) errors.push('Valid correct option required');
+  }
+  if (!d.courseId?.trim()) errors.push('Course ID required');
+  if (d.timer && (d.timer < 10 || d.timer > 300)) errors.push('Timer must be 10–300s');
   return { isValid: errors.length === 0, errors };
 }
 
 export function formatPollForDisplay(poll) {
-  const toDateStr = (ts) => {
-    if (!ts) return 'N/A';
-    if (ts.seconds) return new Date(ts.seconds * 1000).toLocaleString();
-    return new Date(ts).toLocaleString();
-  };
-  return {
-    ...poll,
-    createdAtFormatted: toDateStr(poll.createdAt),
-    startedAtFormatted: poll.startedAt ? toDateStr(poll.startedAt) : 'Not started',
-    endedAtFormatted: poll.endedAt ? toDateStr(poll.endedAt) : 'Not ended',
-    duration: poll.timer ? `${poll.timer} seconds` : 'No timer',
-    optionLetters: poll.options
-      ? poll.options.map((opt, idx) => ({
-          letter: String.fromCharCode(65 + idx),
-          text: opt,
-          isCorrect: idx === poll.correctOption,
-        }))
-      : [],
-  };
+  const fmt = ts => { if (!ts) return 'N/A'; if (ts.seconds) return new Date(ts.seconds * 1000).toLocaleString(); return new Date(ts).toLocaleString(); };
+  return { ...poll, createdAtFormatted: fmt(poll.createdAt), startedAtFormatted: poll.startedAt ? fmt(poll.startedAt) : 'Not started', endedAtFormatted: poll.endedAt ? fmt(poll.endedAt) : 'Not ended' };
 }
 
-export async function createTestPolls(count = 5) {
-  const courses = ['CS310', 'CS101', 'MATH201', 'PHYS101'];
-  const professors = [
-    { id: 'prof1', name: 'Dr. Smith' },
-    { id: 'prof2', name: 'Dr. Johnson' },
-    { id: 'prof3', name: 'Prof. Williams' },
-  ];
-  const testPolls = [];
+export async function createTestPolls(count = 3) {
+  const courses = ['CS310', 'CS101', 'MATH201'];
+  const profs = [{ id: 'prof1', name: 'Dr. Smith' }, { id: 'prof2', name: 'Dr. Johnson' }];
+  const polls = [];
   for (let i = 1; i <= count; i++) {
-    const course = courses[Math.floor(Math.random() * courses.length)];
-    const professor = professors[Math.floor(Math.random() * professors.length)];
-    testPolls.push({
-      question: `Sample Poll Question ${i}: What is ${i} + ${i}?`,
-      options: ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctOption: Math.floor(Math.random() * 4),
-      courseId: course,
-      courseName: `Course ${course}`,
-      professorId: professor.id,
-      professorName: professor.name,
-      timer: [30, 45, 60, 90][Math.floor(Math.random() * 4)],
+    const c = courses[i % courses.length]; const p = profs[i % profs.length];
+    polls.push({
+      question: `Sample Question ${i}: What is ${i}+${i}?`,
+      options: [`${i * 2}`, `${i * 3}`, `${i * 4}`, `${i + 1}`],
+      correctOption: 0, correctOptions: [0],
+      imageUrls: [],
+      courseId: c, courseName: c, professorId: p.id, professorName: p.name, timer: 60,
     });
   }
-  const results = await pollDatabase.createMultiplePolls(testPolls);
-  console.log(`✅ Created ${results.filter((r) => r.success).length} test polls`);
-  return results;
+  return pollDatabase.createMultiplePolls(polls);
 }
 
 export async function initializeDatabase() {
-  console.log('🔄 Initializing database...');
-  const existingPolls = await pollDatabase.getAllPolls();
-  if (existingPolls.length === 0) {
-    console.log('📝 No polls found, creating sample data...');
-    await createTestPolls(3);
-  }
+  const existing = await pollDatabase.getAllPolls();
+  if (existing.length === 0) await createTestPolls(3);
   return true;
 }
