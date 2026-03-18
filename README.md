@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClassNGazer
 
-## Getting Started
+This is a WIP repository of the ClassNGazer app which allows the Faculties to:-
 
-First, run the development server:
+- **Create and Manage polls for the class on the go or in advance**
+- **Allow belated access to the Poll responses**
+- **Support LateX rendering on the Poll Options for Mathematical Accuracy**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Installation/Code Review
+
+#### Cloning
+
+Clone the repository using
+```sh
+git clone https://github.com/DTG2005/ClassNGazer
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+or Download the ZIP file over HTTP using the green button followed by unzipping the file in your required directory.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Dependencies required
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+#### Node
 
-## Learn More
+The Project requires Node version v22.21.1 and npm v10.9.4
 
-To learn more about Next.js, take a look at the following resources:
+For installation, [visit this site](https://nodejs.org/en/download) and follow the instructions for your respective OS.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Other Dependencies
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open up the terminal in the directory of the repository. By default, the path should look like:-
 
-## Deploy on Vercel
+```sh
+/path/to/parent/folder/ClassNGazer/
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Execute this command:
+```sh
+npm i
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This should install all the additional dependencies required for running the application on your device.
+
+## Running the App Server
+
+Open up a terminal in the directory of the repository. Run the following command:-
+
+```sh
+npm run dev
+```
+
+This should start the webserver on the address http://localhost:3000. A Network address should also be visible to you which ideally should be visible to anyone connected to your network.
