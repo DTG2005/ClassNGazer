@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Name
 
-## Getting Started
+## 📌 Overview
 
-First, run the development server:
+Our project is a multi-branch development setup built using this base branch called `basic-dashboard`. Over time, additional features and improvements were developed on top of this base by creating new branches.
+
+---
+
+## 🌿 Branching Strategy
+
+* `basic-dashboard`
+  This is the **initial/base branch** containing the foundational dashboard implementation.
+
+* login+dash
+  was created from `basic-dashboard` and include **additional updates, improvements, and new features**.
+
+⚠️ **Important Note:**
+The new branche is **ahead of `basic-dashboard`**, meaning it contain newer commits that are not present in the base branch.
+We have intentionally **not deleted `basic-dashboard`** to preserve the original starting point of the project.
+
+---
+
+
+
+### 1. Checkout the desired branch
+
+👉 If you want the **latest version with updates**, use a feature branch:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git checkout login+dash
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+👉 If you want the **base version**, use:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+git checkout basic-dashboard
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## 🧠 Notes for Reviewers
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+* The `basic-dashboard` branch represents the **initial implementation**.
+* Subsequent work has been done in separate branches to maintain modular development.
+* To view the **most complete and updated version**, please refer to the latest branches.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+
