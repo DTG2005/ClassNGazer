@@ -52,16 +52,6 @@ The system follows a strict state machine to manage the pedagogical flow:
 
 ---
 
-## Branching Strategy
-
-This project follows a modular development workflow:
-
-* **main**: Stable, production-ready code.
-* **develop**: Integration branch for new features.
-* **kalyani-feature**: This branch represents the first iteration and initial working version of the project. It focused on creating a functional dashboard layout and basic structure to understand the overall flow of the application. It serves as the foundation for the service layer, helping to visualize the system and align the interface with client requirements before moving to advanced real-time features.
-
----
-
 ## Installation and Setup
 
 1. **Clone and Install:**
@@ -69,3 +59,5 @@ This project follows a modular development workflow:
    git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
    cd your-repo-name
    npm install
+
+
