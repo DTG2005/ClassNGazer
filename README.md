@@ -3,7 +3,7 @@
 ## 📸 Preview
 
 
-![iClicker Course Page](./public/Professor_VIew.png)
+![iClicker Course Page](./public/Professor_View.png)
 
 ![iClicker Course Page](./public/Student_VIew.png)
 
