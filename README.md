@@ -106,7 +106,3 @@ npm run dev
 
 ---
 
-#### 📌 Summary
-
-The `login+dash` branch represents the **second major step in development**, where the project evolves into an interactive system with authentication. It sets the groundwork for all future user-based features.
-
