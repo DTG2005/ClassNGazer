@@ -27,30 +27,7 @@ For installation, [visit this site](https://nodejs.org/en/download) and follow t
 
 #### Environment
 
-The Environment Variables required to run the program correctly will be made available through email. The variables in the form of a `.env` file must be placed in the root directory of the project, making the directory structure look something like this:-
-
-```
-divyammaru@pop-os:~/Desktop/Divyams_Computer_Folder/CPP_Files/SoftEngProj/class-n-gazer$ tree -L 1 -la
-.
-├── app
-├── .env.local
-├── eslint.config.mjs
-├── .git
-├── .gitignore
-├── .next
-├── next.config.ts
-├── next-env.d.ts
-├── node_modules
-├── package.json
-├── package-lock.json
-├── postcss.config.mjs
-├── public
-├── README.md
-├── todo.md
-└── tsconfig.json
-
-5 directories, 11 files
-```
+The Environment Variables required to run the program correctly will be made available through email. The variables in the form of a `.env` or a `.env.local` file must be placed in the **root directory** of project, directly in the folder named ClassNGazer that you cloned. The file can be **copied directly from the mail** and must be placed and named `.env` or `.env.local` to properly work.
 
 #### Other Dependencies
 
