@@ -14,12 +14,14 @@ Clone the repository using
 ```sh
 git clone https://github.com/DTG2005/ClassNGazer
 ```
+or Download the ZIP file over HTTP using the green button followed by unzipping the file in your required directory.
+
 After cloning the repository using the instructions in this branch, users can switch to any specific branch to explore its functionality.
 ```sh
 git checkout <branch-name>
 ```
 
-or Download the ZIP file over HTTP using the green button followed by unzipping the file in your required directory.
+
 
 ### Dependencies required
 
