@@ -14,7 +14,7 @@ Our project is a multi-branch development setup built using this base branch cal
   was created from `basic-dashboard` and include **additional updates, improvements, and new features**.
 
 ⚠️ **Important Note:**
-The new branche is **ahead of `basic-dashboard`**, meaning it contain newer commits that are not present in the base branch.
+The new branch is **ahead of `basic-dashboard`**, meaning it contain newer commits that are not present in the base branch.
 We have intentionally **not deleted `basic-dashboard`** to preserve the original starting point of the project.
 
 ---
