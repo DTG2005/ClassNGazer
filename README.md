@@ -1,4 +1,4 @@
-### 3.7 `login+dash`
+### overview
 
 The `login+dash` branch builds upon the `BasicDashboard` by introducing a **user authentication system using Firebase**. This marks a significant step forward, as the application transitions from a static interface to a user-specific, interactive system.
 
