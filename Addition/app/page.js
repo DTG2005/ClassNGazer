@@ -9,7 +9,7 @@ export default function Home() {
 
   useEffect(() => {
     const unsub = authService.onAuthChange((user) => {
-      if (user && !user.isNewUser) router.replace('/dashboard');
+      if (user && !user.isNewUser) router.replace('/classroom');
       else router.replace('/auth');
       setChecking(false);
     });

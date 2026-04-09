@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "livePolls": {
+      "$pollId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('professorId').val() === auth.uid)",
+
+        "responses": {
+          "$studentId": {
+            ".read": "auth != null",
+            ".write": "auth != null && $studentId === auth.uid && !data.exists() && root.child('livePolls').child($pollId).child('liveStatus').val() === 'active'",
+            ".validate": "newData.hasChildren(['studentId', 'response', 'timestamp']) && newData.child('studentId').val() === auth.uid && newData.child('response').isNumber() && newData.child('response').val() >= 0 && newData.child('response').val() <= 5 && newData.child('timestamp').isNumber()"
+          }
+        },
+
+        "responseCount": {
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('livePolls').child($pollId).child('professorId').val() === auth.uid || (newData.isNumber() && newData.val() === data.val() + 1))",
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        }
+      }
+    },
+
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

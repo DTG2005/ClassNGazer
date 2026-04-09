@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() { return request.auth != null; }
+    function isIITI() { return isAuth() && request.auth.token.email_verified == true && request.auth.token.email.matches('.*@iiti[.]ac[.]in$'); }
+    function getUserRole() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
+    function isProfessor() { return isIITI() && getUserRole() == 'professor'; }
+    function isStudent() { return isIITI() && getUserRole() == 'student'; }
+
+    // ── Users ──
+    match /users/{userId} {
+      allow read: if isIITI();
+      allow create: if isIITI() && request.auth.uid == userId && request.resource.data.role in ['professor', 'student'] && request.resource.data.email == request.auth.token.email;
+      allow update: if isIITI() && request.auth.uid == userId && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    // ── Courses (supports ta, instructorIds, joinCourse) ──
+    match /courses/{courseId} {
+      allow read: if isIITI();
+      allow create: if isProfessor() && request.resource.data.professorId == request.auth.uid;
+      // Professors (any instructor) can update
+      allow update: if isProfessor() && (resource.data.professorId == request.auth.uid || request.auth.uid in resource.data.instructorIds);
+      // Students can update ONLY enrolledStudentIds (joinCourse)
+      allow update: if isStudent() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrolledStudentIds', 'updatedAt']);
+      allow delete: if isProfessor() && resource.data.professorId == request.auth.uid;
+    }
+
+    // ── Polls (supports correctOptions array, imageUrls, count map) ──
+    match /polls/{pollId} {
+      allow read: if isProfessor() || (isStudent() && resource.data.status in ['active', 'closed']);
+      allow create: if isProfessor() && request.resource.data.professorId == request.auth.uid && request.resource.data.status == 'draft' && request.resource.data.options.size() >= 2 && request.resource.data.options.size() <= 6 && request.resource.data.timer >= 10 && request.resource.data.timer <= 300;
+      // Professor updates (status transitions, edit fields)
+      allow update: if isProfessor() && resource.data.professorId == request.auth.uid && request.resource.data.professorId == resource.data.professorId && request.resource.data.courseId == resource.data.courseId && (request.resource.data.status == resource.data.status || (resource.data.status == 'draft' && request.resource.data.status == 'active') || (resource.data.status == 'active' && request.resource.data.status == 'closed'));
+      // Student updates (increment totalResponses + update count map on active polls)
+      allow update: if isStudent() && resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalResponses', 'count', 'updatedAt']);
+      allow delete: if isProfessor() && resource.data.professorId == request.auth.uid && resource.data.status in ['draft', 'closed'];
+    }
+
+    // ── Responses (immutable) ──
+    match /responses/{responseId} {
+      allow read: if isProfessor() || (isStudent() && resource.data.studentId == request.auth.uid);
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid && request.resource.data.response >= 0 && exists(/databases/$(database)/documents/polls/$(request.resource.data.pollId)) && get(/databases/$(database)/documents/polls/$(request.resource.data.pollId)).data.status == 'active';
+      allow update, delete: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
