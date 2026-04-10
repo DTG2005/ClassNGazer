@@ -1,4 +1,4 @@
-# ClassNGazer
+#ClassNGazer
 
 This is a WIP repository of the ClassNGazer app which allows the Faculties to:-
 
