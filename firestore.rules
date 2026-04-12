@@ -45,6 +45,22 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ── Quizzes ──
+    match /quizzes/{quizId} {
+      allow read: if isProfessor() || (isStudent() && resource.data.status in ['active', 'closed']);
+      allow create: if isProfessor() && request.resource.data.professorId == request.auth.uid && request.resource.data.status == 'draft';
+      allow update: if isProfessor() && resource.data.professorId == request.auth.uid;
+      allow update: if isStudent() && resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalSubmissions', 'updatedAt']);
+      allow delete: if isProfessor() && resource.data.professorId == request.auth.uid && resource.data.status in ['draft', 'closed'];
+    }
+
+    // ── Quiz Responses ──
+    match /quizResponses/{responseId} {
+      allow read: if isProfessor() || (isStudent() && resource.data.studentId == request.auth.uid);
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid && exists(/databases/$(database)/documents/quizzes/$(request.resource.data.quizId));
+      allow update, delete: if false;
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }

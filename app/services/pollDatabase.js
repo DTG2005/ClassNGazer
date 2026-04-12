@@ -58,11 +58,26 @@ export const pollDatabase = {
     } catch (error) { console.error("Error:", error); return []; }
   },
 
+  // Helper to strip undefined values before sending to Firebase
+  _cleanUndefined(obj) {
+    if (obj === undefined) return null;
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(v => this._cleanUndefined(v));
+    const cleaned = {};
+    for (const key in obj) {
+      if (obj[key] !== undefined) {
+        cleaned[key] = this._cleanUndefined(obj[key]);
+      }
+    }
+    return cleaned;
+  },
+
   // Create poll
   async createPoll(pollData) {
     try {
       const pollDoc = {
         question: pollData.question?.trim() || '',
+        questionImage: pollData.questionImage || null,
         options: pollData.options || [],
         correctOption: pollData.correctOption ?? 0,
         correctOptions: pollData.correctOptions || [pollData.correctOption ?? 0],
@@ -75,13 +90,15 @@ export const pollDatabase = {
         totalResponses: 0,
         count: {},
         solution: pollData.solution || '',
-        imageUrls: pollData.imageUrls || [],
+        solutionImage: pollData.solutionImage || null,
         createdAt: serverTimestamp(),
+        createdAtMs: Date.now(), // client-readable fallback for immediate display
         updatedAt: serverTimestamp(),
         startedAt: null,
         endedAt: null,
       };
-      const docRef = await addDoc(collection(db, "polls"), pollDoc);
+      const cleanedDoc = this._cleanUndefined(pollDoc);
+      const docRef = await addDoc(collection(db, "polls"), cleanedDoc);
       return docRef.id;
     } catch (error) { console.error("Error creating poll:", error); throw error; }
   },
@@ -92,7 +109,8 @@ export const pollDatabase = {
       const safeUpdates = { ...updates, updatedAt: serverTimestamp() };
       delete safeUpdates.createdAt;
       delete safeUpdates.professorId;
-      await updateDoc(doc(db, "polls", pollId), safeUpdates);
+      const cleanedUpdates = this._cleanUndefined(safeUpdates);
+      await updateDoc(doc(db, "polls", pollId), cleanedUpdates);
       return true;
     } catch (error) { console.error("Error updating poll:", error); throw error; }
   },
@@ -115,7 +133,8 @@ export const pollDatabase = {
       // Sync with Realtime DB
       if (newStatus === 'active') {
         await set(ref(realtimeDb, `livePolls/${pollId}`), {
-          question: poll.question, options: poll.options,
+          question: poll.question, questionImage: poll.questionImage || null,
+          options: poll.options,
           correctOption: poll.correctOption, correctOptions: poll.correctOptions || [poll.correctOption],
           timer: poll.timer, courseId: poll.courseId, courseName: poll.courseName,
           professorId: poll.professorId, professorName: poll.professorName,
@@ -133,8 +152,15 @@ export const pollDatabase = {
             const total = Object.keys(responses).length;
             const countMap = {};
             Object.values(responses).forEach(r => {
-              const idx = String(r.response);
-              countMap[idx] = (countMap[idx] || 0) + 1;
+              if (Array.isArray(r.response)) {
+                r.response.forEach(idx => {
+                  const str = String(idx);
+                  countMap[str] = (countMap[str] || 0) + 1;
+                });
+              } else {
+                const idx = String(r.response);
+                countMap[idx] = (countMap[idx] || 0) + 1;
+              }
             });
             await updateDoc(doc(db, "polls", pollId), { totalResponses: total, count: countMap });
           }
@@ -144,6 +170,25 @@ export const pollDatabase = {
 
       return true;
     } catch (error) { console.error("Error updating status:", error); throw error; }
+  },
+
+  // Add time to active poll
+  async addTime(pollId, extraSeconds) {
+    try {
+      // Update Firestore
+      await updateDoc(doc(db, "polls", pollId), {
+        timer: increment(extraSeconds),
+        updatedAt: serverTimestamp(),
+      });
+      // Update Realtime DB timer field so all clients recompute remaining time
+      const livePollRef = ref(realtimeDb, `livePolls/${pollId}`);
+      const snap = await get(livePollRef);
+      if (snap.exists()) {
+        const curr = snap.val();
+        await set(ref(realtimeDb, `livePolls/${pollId}/timer`), (curr.timer || 0) + extraSeconds);
+      }
+      return true;
+    } catch (error) { console.error("Error adding time:", error); throw error; }
   },
 
   // Delete poll
@@ -165,7 +210,8 @@ export const pollDatabase = {
       // 1. Check for duplicate in Realtime DB
       const existingRef = ref(realtimeDb, `livePolls/${pollId}/responses/${studentId}`);
       const existingSnap = await get(existingRef);
-      if (existingSnap.exists()) throw new Error('You have already submitted a response for this poll.');
+      const exists = existingSnap.exists();
+      const oldData = exists ? existingSnap.val() : null;
 
       const responseData = {
         studentId, studentName,
@@ -178,23 +224,82 @@ export const pollDatabase = {
       await set(existingRef, responseData);
 
       // 3. Write to Firestore responses collection (permanent record)
-      await addDoc(collection(db, "responses"), {
-        pollId, ...responseData, submittedAt: serverTimestamp(),
+      // Since student can change answer, query their previous response doc
+      const responsesCol = collection(db, "responses");
+      const userRespQuery = query(responsesCol, where("pollId", "==", pollId), where("studentId", "==", studentId));
+      const userRespSnap = await getDocs(userRespQuery);
+      
+      if (!userRespSnap.empty) {
+        // Update existing document
+        const respDocId = userRespSnap.docs[0].id;
+        await updateDoc(doc(db, "responses", respDocId), {
+          ...responseData,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        // Create new document
+        await addDoc(responsesCol, {
+          pollId, ...responseData, submittedAt: serverTimestamp(),
+        });
+      }
+
+      // 4. ✅ FIX: Update Firestore polls/{pollId} correctly managing counts
+      const updates = { updatedAt: serverTimestamp() };
+      
+      if (!exists) {
+        updates.totalResponses = increment(1);
+      } else {
+        // Subtract old response
+        const oldResp = oldData.response;
+        if (Array.isArray(oldResp)) {
+          oldResp.forEach(idx => { updates[`count.${String(idx)}`] = increment(-1); });
+        } else if (oldResp !== undefined && oldResp !== null) {
+          updates[`count.${String(oldResp)}`] = increment(-1);
+        }
+      }
+      
+      // Add new response
+      if (Array.isArray(responseIndex)) {
+        responseIndex.forEach(idx => {
+          updates[`count.${String(idx)}`] = (updates[`count.${String(idx)}`] || 0) instanceof Function ? updates[`count.${String(idx)}`] : increment(
+            (updates[`count.${String(idx)}`] ? updates[`count.${String(idx)}`].operand : 0) + 1
+          );
+        });
+      } else {
+        updates[`count.${String(responseIndex)}`] = increment(
+           (updates[`count.${String(responseIndex)}`] ? updates[`count.${String(responseIndex)}`].operand || -1 /* if exists and was subtracted */ : 0) + 1
+        );
+      }
+      
+      // Note: Firebase increment doesn't merge nicely if we do increment(-1) and increment(+1) on same field 
+      // in same update object. So we resolve it:
+      const finalUpdates = { updatedAt: serverTimestamp() };
+      if (!exists) finalUpdates.totalResponses = increment(1);
+      
+      const countChanges = {};
+      
+      if (exists) {
+        const oldR = Array.isArray(oldData.response) ? oldData.response : [oldData.response];
+        oldR.forEach(idx => countChanges[idx] = (countChanges[idx] || 0) - 1);
+      }
+      
+      const newR = Array.isArray(responseIndex) ? responseIndex : [responseIndex];
+      newR.forEach(idx => countChanges[idx] = (countChanges[idx] || 0) + 1);
+      
+      Object.entries(countChanges).forEach(([idx, val]) => {
+        if (val !== 0) finalUpdates[`count.${idx}`] = increment(val);
       });
 
-      // 4. ✅ FIX: Update Firestore polls/{pollId}.totalResponses (atomic increment)
-      await updateDoc(doc(db, "polls", pollId), {
-        totalResponses: increment(1),
-        [`count.${String(responseIndex)}`]: increment(1),
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(doc(db, "polls", pollId), finalUpdates);
 
       // 5. Update Realtime DB response count
-      const countRef = ref(realtimeDb, `livePolls/${pollId}/responseCount`);
-      const countSnap = await get(countRef);
-      await set(countRef, (countSnap.val() || 0) + 1);
+      if (!exists) {
+        const countRef = ref(realtimeDb, `livePolls/${pollId}/responseCount`);
+        const countSnap = await get(countRef);
+        await set(countRef, (countSnap.val() || 0) + 1);
+      }
 
-      console.log("📝 Response submitted by:", studentName);
+      console.log("📝 Response submitted/updated by:", studentName);
       return true;
     } catch (error) {
       console.error("❌ Error submitting response:", error);
@@ -212,9 +317,15 @@ export const pollDatabase = {
       const total = Object.keys(responses).length;
       const n = lp.options?.length || 4;
       const counts = {}; for (let i = 0; i < n; i++) counts[i] = 0;
-      Object.values(responses).forEach(r => { if (counts[r.response] !== undefined) counts[r.response]++; });
+      Object.values(responses).forEach(r => { 
+        if (Array.isArray(r.response)) {
+          r.response.forEach(idx => { if (counts[idx] !== undefined) counts[idx]++; });
+        } else {
+          if (counts[r.response] !== undefined) counts[r.response]++; 
+        }
+      });
       const pcts = {}; for (let i = 0; i < n; i++) pcts[i] = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
-      return { pollId, question: lp.question, options: lp.options, totalResponses: total, optionCounts: counts, percentages: pcts, responses: Object.values(responses) };
+      return { pollId, question: lp.question, questionImage: lp.questionImage || null, options: lp.options, totalResponses: total, optionCounts: counts, percentages: pcts, responses: Object.values(responses) };
     } catch (error) { console.error("Error:", error); return null; }
   },
 
@@ -251,8 +362,16 @@ export const pollDatabase = {
       const correctSet = new Set((poll.correctOptions || [poll.correctOption]).map(Number));
       
       responses.forEach(r => {
-        if (counts[r.response] !== undefined) counts[r.response]++;
-        if (correctSet.has(Number(r.response))) correctCount++;
+        let isCorrect = false;
+        if (Array.isArray(r.response)) {
+          r.response.forEach(idx => { if (counts[idx] !== undefined) counts[idx]++; });
+          const userSet = new Set(r.response.map(Number));
+          if (userSet.size === correctSet.size && [...userSet].every(x => correctSet.has(x))) isCorrect = true;
+        } else {
+          if (counts[r.response] !== undefined) counts[r.response]++;
+          if (correctSet.has(Number(r.response))) isCorrect = true;
+        }
+        if (isCorrect) correctCount++;
       });
 
       const pcts = {}; for (let i = 0; i < n; i++) pcts[i] = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
@@ -275,7 +394,7 @@ export const pollDatabase = {
       pollId, questionText: s.question, correctOption: s.correctOption, correctOptions: s.correctOptions,
       totalResponses: s.totalResponses,
       distribution: (s.options || []).map((t, i) => ({
-        optionIndex: i, optionText: t, count: s.optionCounts[i] || 0, percentage: s.percentages[i] || 0,
+        optionIndex: i, optionText: typeof t === 'string' ? t : t.text, optionImage: typeof t === 'string' ? null : t.image, count: s.optionCounts[i] || 0, percentage: s.percentages[i] || 0,
         isCorrect: (s.correctOptions || [s.correctOption]).map(Number).includes(i),
       })),
     };
@@ -291,7 +410,14 @@ export const pollDatabase = {
       if (!snap.empty) {
         const resp = snap.docs[0].data();
         const correctSet = new Set((poll.correctOptions || [poll.correctOption]).map(Number));
-        results.push({ pollId: poll.id, question: poll.question, selected: resp.response, isCorrect: correctSet.has(Number(resp.response)) });
+        let isCorrect = false;
+        if (Array.isArray(resp.response)) {
+          const userSet = new Set(resp.response.map(Number));
+          if (userSet.size === correctSet.size && [...userSet].every(x => correctSet.has(x))) isCorrect = true;
+        } else {
+          if (correctSet.has(Number(resp.response))) isCorrect = true;
+        }
+        results.push({ pollId: poll.id, question: poll.question, selected: resp.response, isCorrect });
       } else {
         results.push({ pollId: poll.id, question: poll.question, selected: null, isCorrect: false, missed: true });
       }
@@ -365,10 +491,10 @@ export const exportService = {
 
 export function validatePollData(d) {
   const errors = [];
-  if (!d.question?.trim()) errors.push('Question required');
-  if (!d.options || d.options.length < 2) errors.push('At least 2 options');
-  else if (d.options.some(o => !o.trim())) errors.push('All options need text');
-  if (d.correctOption === undefined || d.correctOption < 0 || d.correctOption >= (d.options?.length || 0)) errors.push('Valid correct option required');
+  if (!d.question?.trim() && !d.questionImage) errors.push('Question required');
+  if (!d.options || d.options.length < 2) errors.push('At least 2 options required');
+  else if (d.options.some(o => typeof o === 'string' ? !o.trim() : (!o.text?.trim() && !o.image))) errors.push('Options missing content');
+  if (!d.correctOptions || d.correctOptions.length === 0) errors.push('Valid correct option required');
   if (!d.courseId?.trim()) errors.push('Course ID required');
   if (d.timer && (d.timer < 10 || d.timer > 300)) errors.push('Timer 10-300s');
   return { isValid: errors.length === 0, errors };

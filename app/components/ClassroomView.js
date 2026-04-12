@@ -59,7 +59,9 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
   const [loading, setLoading] = useState(true);
   const [bannerTimeLeft, setBannerTimeLeft] = useState(null);
   const bannerTimerRef = useRef(null);
+  const bannerRemRef = useRef(null);
   const bannerPollIdRef = useRef(null);
+  const bannerLivePollUnsubRef = useRef(null);
   const closingRef = useRef(false);
   const [toast, setToast] = useState(null);
 
@@ -80,6 +82,7 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
     return () => {
       if (bannerTimerRef.current) clearInterval(bannerTimerRef.current);
       if (liveUnsubRef.current) liveUnsubRef.current();
+      if (bannerLivePollUnsubRef.current) bannerLivePollUnsubRef.current();
       bannerPollIdRef.current = null;
     };
   }, [courseId]);
@@ -91,7 +94,8 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
       const all = courseId
         ? await pollDatabase.getPollsByCourse(courseId)
         : await pollDatabase.getAllPolls();
-      const converted = all.map(toUI);
+      // Sort client-side newest-first using createdAtMs (handles serverTimestamp pending state)
+      const converted = all.map(toUI).sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
       setPolls(converted);
       const active = converted.find(p => p.status === 'active');
       if (active) startBannerTimer(active);
@@ -104,31 +108,49 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
 
   const toUI = (p) => ({
     id: p.id, question: p.question || '', status: p.status || 'draft',
-    createdAt: p.createdAt?.seconds ? new Date(p.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
+    questionImage: p.questionImage || null,
+    solutionImage: p.solutionImage || null,
+    createdAt: p.createdAt?.seconds
+      ? new Date(p.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : p.createdAtMs
+      ? new Date(p.createdAtMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : 'Just now',
+    createdAtMs: p.createdAtMs || (p.createdAt?.seconds ? p.createdAt.seconds * 1000 : 0),
     totalResponses: p.totalResponses || 0, topic: p.courseName || p.courseId || courseName || 'General',
     timeLimit: p.timer || 60, startedAt: p.startedAt || null,
     scheduledFor: p.scheduledFor || null,
     solution: p.solution || '',
+    correctOption: p.correctOption ?? -1,
+    correctOptions: p.correctOptions || [],
     options: (p.options || []).map((opt, i) => ({
       id: String.fromCharCode(97 + i), label: String.fromCharCode(65 + i),
       text: typeof opt === 'string' ? opt : (opt?.text || opt?.label || String(opt)),
+      image: typeof opt === 'string' ? null : (opt?.image || null),
       votes: p.count?.[String(i)] || 0,
       isCorrect: (p.correctOptions || [p.correctOption]).map(Number).includes(i),
     })),
   });
 
   const startBannerTimer = (ap) => {
-    if (bannerPollIdRef.current === ap.id) return;
+    if (bannerPollIdRef.current === ap.id) return; // already tracking this poll
+    // Clean up previous
     if (bannerTimerRef.current) clearInterval(bannerTimerRef.current);
+    if (bannerLivePollUnsubRef.current) bannerLivePollUnsubRef.current();
     bannerPollIdRef.current = ap.id;
     closingRef.current = false;
     if (!ap.timeLimit) return;
-    let elapsed = 0;
-    if (ap.startedAt) { const ms = ap.startedAt.seconds ? ap.startedAt.seconds * 1000 : new Date(ap.startedAt).getTime(); elapsed = Math.floor((Date.now() - ms) / 1000); }
-    let rem = Math.max(0, ap.timeLimit - elapsed);
-    setBannerTimeLeft(rem);
-    bannerTimerRef.current = setInterval(() => {
-      rem--;
+    let startMs = Date.now();
+    if (ap.startedAt) { 
+      startMs = ap.startedAt.seconds ? ap.startedAt.seconds * 1000 : new Date(ap.startedAt).getTime(); 
+    }
+    const targetMs = startMs + (ap.timeLimit * 1000);
+    
+    // We use bannerRemRef to store the actual target timestamp now!
+    bannerRemRef.current = targetMs;
+
+    const updateBanner = () => {
+      if (!bannerRemRef.current) return;
+      const rem = Math.floor((bannerRemRef.current - Date.now()) / 1000);
       if (rem <= 0) {
         clearInterval(bannerTimerRef.current);
         bannerPollIdRef.current = null;
@@ -137,8 +159,30 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
           closingRef.current = true;
           pollDatabase.updatePollStatus(ap.id, 'closed').then(fetchPolls).catch(() => {});
         }
-      } else setBannerTimeLeft(rem);
-    }, 1000);
+      } else {
+        setBannerTimeLeft(rem);
+      }
+    };
+
+    updateBanner();
+    bannerTimerRef.current = setInterval(updateBanner, 1000);
+
+    // Subscribe to Realtime DB for live timer extension updates
+    bannerLivePollUnsubRef.current = pollDatabase.listenToLivePoll(ap.id, (data) => {
+      if (!data || data.liveStatus !== 'active') return; // closed handled by fetchPolls
+      if (data.timer && data.liveStartedAt) {
+        const el = Math.floor((Date.now() - data.liveStartedAt) / 1000);
+        const newRem = Math.max(0, data.timer - el);
+        // If extension is detected (new remaining time > current remaining time)
+        if (bannerRemRef.current) {
+          const currentRem = Math.floor((bannerRemRef.current - Date.now()) / 1000);
+          if (newRem > currentRem) {
+            bannerRemRef.current = Date.now() + (newRem * 1000);
+            setBannerTimeLeft(newRem);
+          }
+        }
+      }
+    });
   };
 
   const fmt = (s) => s == null ? '' : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -150,10 +194,12 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
   const isProfessor = role === 'professor';
 
   const handleClose = async (id) => {
-    if (closingRef.current) return;
+    // Always allow manual close — reset closingRef so Firestore call goes through
     closingRef.current = true;
     if (bannerTimerRef.current) clearInterval(bannerTimerRef.current);
+    if (bannerLivePollUnsubRef.current) bannerLivePollUnsubRef.current();
     bannerPollIdRef.current = null;
+    bannerRemRef.current = null;
     setBannerTimeLeft(null);
     try {
       await pollDatabase.updatePollStatus(id, 'closed');
@@ -161,7 +207,9 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
       fetchPolls();
     } catch (e) {
       closingRef.current = false;
+      // Ignore if already closed (e.g. timer already closed it)
       if (!e.message?.includes('Cannot close')) showToast(e.message, 'error');
+      else fetchPolls(); // still refresh to sync UI
     }
   };
 
@@ -186,12 +234,15 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
   const handleAdd = async (d) => {
     try {
       const id = await pollDatabase.createPoll({
-        question: d.question, options: d.options.map(o => o.text),
-        correctOption: d.options.findIndex(o => o.isCorrect),
-        correctOptions: d.options.map((o, i) => o.isCorrect ? i : -1).filter(i => i >= 0),
+        question: d.question, 
+        questionImage: d.questionImage || null,
+        options: d.options,
+        correctOption: d.correctOption,
+        correctOptions: d.correctOptions,
         timer: d.timer || 60, courseId: courseId || '', courseName: courseName || '',
         professorId: user?.uid || 'demo', professorName: user?.name || user?.displayName || 'Professor',
         solution: d.solution || '',
+        solutionImage: d.solutionImage || null,
       });
 
       if (d.mode === 'live') {
@@ -200,11 +251,10 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
       } else if (d.mode === 'schedule') {
         await pollDatabase.updatePoll(id, { status: 'scheduled', scheduledFor: d.scheduledFor });
         showToast('Poll scheduled', 'success');
-      } else {
-        showToast('Draft saved', 'info');
       }
 
       fetchPolls();
+      setShowAddPoll(false);
     } catch (e) { showToast(e.message, 'error'); }
   };
 
@@ -212,13 +262,48 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
     try {
       await pollDatabase.updatePoll(pollId, {
         question: d.question,
-        options: d.options.map(o => o.text),
-        correctOption: d.options.findIndex(o => o.isCorrect),
-        correctOptions: d.options.map((o, i) => o.isCorrect ? i : -1).filter(i => i >= 0),
+        questionImage: d.questionImage || null,
+        options: d.options,
+        correctOption: d.correctOption,
+        correctOptions: d.correctOptions,
         timer: d.timer || 60,
         solution: d.solution || '',
+        solutionImage: d.solutionImage || null,
       });
       showToast('Poll updated', 'success');
+      fetchPolls();
+      setEditPoll(null);
+    } catch (e) { showToast(e.message, 'error'); }
+  };
+
+  const handleRestart = async (p) => {
+    if (!confirm('Start a fresh copy of this poll?')) return;
+    try {
+      // Strip UI-only fields (votes, isCorrect, id, label) — only store text + image
+      const cleanOptions = (p.options || []).map(o => ({
+        text: o.text || '',
+        ...(o.image ? { image: o.image } : {}),
+      }));
+      // Rebuild correctOptions from original indices
+      const correctOptions = (p.options || [])
+        .map((o, i) => o.isCorrect ? i : -1)
+        .filter(i => i >= 0);
+      const correctOption = correctOptions[0] ?? -1;
+
+      const id = await pollDatabase.createPoll({
+        question: p.question,
+        questionImage: p.questionImage || null,
+        options: cleanOptions,
+        correctOption,
+        correctOptions,
+        timer: p.timeLimit,
+        courseId: courseId || '', courseName: courseName || '',
+        professorId: user?.uid || 'demo', professorName: user?.name || user?.displayName || 'Professor',
+        solution: p.solution || '',
+        solutionImage: p.solutionImage || null,
+      });
+      await pollDatabase.updatePollStatus(id, 'active');
+      showToast('Poll restarted successfully', 'success');
       fetchPolls();
     } catch (e) { showToast(e.message, 'error'); }
   };
@@ -351,6 +436,7 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingTop: '12px', borderTop: '1px solid var(--gray-100)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1 }}>{p.totalResponses}</span><span style={{ fontSize: '10px', color: 'var(--gray-400)', fontWeight: 600 }}>responses</span></div>
                     {isProfessor && <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                      <button onClick={(e) => { e.stopPropagation(); handleRestart(p); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--blue-pale', color: '#1D4ED8', border: '1px solid #BFDBFE', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Restart as New">🔄</button>
                       <button onClick={(e) => { e.stopPropagation(); setExportPoll(p); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--gray-50)', border: '1px solid var(--gray-100)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Export">📥</button>
                       <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--gray-50)', border: '1px solid var(--gray-100)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete">🗑</button>
                     </div>}

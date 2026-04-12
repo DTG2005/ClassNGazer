@@ -16,9 +16,9 @@ export default function JoinCoursePage() {
 
   useEffect(() => {
     if (authLoading) return;
-
     if (!user) {
-      setStatus('needsAuth');
+      // Prevents React `setState in effect` synchronous cascade warning
+      setTimeout(() => setStatus('needsAuth'), 0);
       return;
     }
 
@@ -96,7 +96,7 @@ export default function JoinCoursePage() {
         {status === 'error' && (
           <>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
-            <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--red)', marginBottom: '8px' }}>Couldn't Join</h1>
+            <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--red)', marginBottom: '8px' }}>Couldn&apos;t Join</h1>
             <p style={{ fontSize: '14px', color: 'var(--gray-600)', marginBottom: '20px' }}>{error}</p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => router.push('/dashboard')}

@@ -1,19 +1,24 @@
 // @ts-nocheck
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../../../lib/firebase';
 import { useAuth } from '../../../../context/AuthContext';
 import { getCourse } from '../../../../lib/firestore';
 import ClassroomView from '../../../components/ClassroomView';
+import QuizView from '../../../components/quiz/QuizView';
 
 // ─── Main Page ───────────────────────────────────────────────────
 export default function CoursePage() {
   const { user, role, loading: authLoading } = useAuth();
-  const router  = useRouter();
-  const params  = useParams();
+  const router       = useRouter();
+  const params       = useParams();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'polls'|'quizzes'>(
+    (searchParams?.get('tab') as 'polls'|'quizzes') || 'polls'
+  );
   const courseId = params.id;
 
   const [course, setCourse]           = useState(null);
@@ -119,15 +124,53 @@ export default function CoursePage() {
           </div>
         </header>
 
-        {/* ClassroomView renders all poll management UI */}
+        {/* Polls / Quizzes tab bar */}
+        <div style={{ display:'flex', borderBottom:'2px solid #EDEDEA', background:'#F7F6F4', flexShrink:0 }}>
+          {[
+            { key:'polls',   label:'📊 Polls',  accent:'#FF6B2B' },
+            { key:'quizzes', label:'🧠 Quizzes', accent:'#7C3AED' },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => {
+                setActiveTab(t.key as 'polls'|'quizzes');
+                router.replace(`/dashboard/courses/${courseId}?tab=${t.key}`, { scroll:false });
+              }}
+              style={{
+                padding:'10px 24px',
+                fontSize:'13px',
+                fontWeight:700,
+                border:'none',
+                background:'transparent',
+                cursor:'pointer',
+                transition:'all 0.15s',
+                color:         activeTab===t.key ? t.accent : '#9B9A94',
+                borderBottom:  `3px solid ${activeTab===t.key ? t.accent : 'transparent'}`,
+                marginBottom: '-2px',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content area — swaps between Polls and Quizzes */}
         <main className="flex-1 overflow-y-auto">
-          {classroomUser && (
+          {classroomUser && activeTab === 'polls' && (
             <ClassroomView
               user={classroomUser}
               courseId={courseId}
               courseName={course.title || course.courseName || ''}
               courseCode={course.code || course.courseCode || ''}
               joinCode={course.joinCode || ''}
+            />
+          )}
+          {classroomUser && activeTab === 'quizzes' && (
+            <QuizView
+              user={classroomUser}
+              courseId={courseId}
+              courseName={course.title || course.courseName || ''}
+              courseCode={course.code || course.courseCode || ''}
             />
           )}
         </main>

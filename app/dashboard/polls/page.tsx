@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../../lib/firebase';
@@ -23,7 +23,7 @@ export default function ActivePollsPage() {
 
   useEffect(() => { if (!authLoading && !user) router.push('/auth'); }, [user, authLoading, router]);
 
-  const loadPolls = async () => {
+  const loadPolls = useCallback(async () => {
     if (!user) return;
     setPageLoading(true);
     try {
@@ -46,9 +46,9 @@ export default function ActivePollsPage() {
       setPolls(all);
     } catch (e) { console.error(e); }
     finally { setPageLoading(false); }
-  };
+  }, [user]);
 
-  useEffect(() => { if (user) loadPolls(); }, [user]);
+  useEffect(() => { if (user) loadPolls(); }, [user, loadPolls]);
 
   const handleEnd = async (courseId: string, pollId: string) => {
     setActing(pollId);
