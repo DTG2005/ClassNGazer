@@ -13,7 +13,8 @@
 }
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
 body { font-family: 'Sora', sans-serif; background: var(--off-white); color: var(--ink); min-height: 100vh; }
-button { font-family: 'Sora', sans-serif; cursor: pointer; }
+button { font-family: 'Sora', sans-serif; cursor: pointer; transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease; }
+button:active { transform: scale(0.95); }
 input, select, textarea { font-family: 'Sora', sans-serif; }
 *, *::before, *::after { box-sizing: border-box; }
 ::-webkit-scrollbar { width: 6px; }
