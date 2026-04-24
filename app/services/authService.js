@@ -16,8 +16,8 @@ const googleProvider = new GoogleAuthProvider();
 //googleProvider.setCustomParameters({ hd: 'iiti.ac.in' });
 
 function validateIITIEmail(email) {
-  if (!email ) {
-    throw new Error('Only @iiti.ac.in email addresses are allowed.');
+  if (!email || !email.toLowerCase().includes('iiti')) {
+    throw new Error('Only emails containing "iiti" are allowed.');
   }
 }
 

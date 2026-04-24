@@ -38,7 +38,7 @@ export default function AuthPage() {
   const handleEmailSignIn = async (e) => {
     e.preventDefault(); setLoading(true); setError('');
     try { await authService.signIn(email, password); } // AuthContext handles redirect
-    catch (err) { setError(err.message?.includes('invalid') ? 'Wrong email or password.' : err.message?.includes('@iiti') ? err.message : 'Sign in failed.'); }
+    catch (err) { setError(err.message?.includes('invalid') ? 'Wrong email or password.' : err.message?.toLowerCase().includes('iiti') ? err.message : 'Sign in failed.'); }
     setLoading(false);
   };
 
@@ -84,7 +84,7 @@ export default function AuthPage() {
     <div style={S.page}><div style={S.card}>
       <div style={S.logoWrap}><span style={S.logoDot}>●</span><span style={S.logoText}>ClassNGazer</span></div>
       <h2 style={S.title}>{mode === 'signin' ? 'Welcome back' : 'Create account'}</h2>
-      <p style={S.sub}>{mode === 'signin' ? 'Sign in with your IITI account' : 'Join with your @iiti.ac.in email'}</p>
+      <p style={S.sub}>{mode === 'signin' ? 'Sign in with your IITI account' : 'Join with an email containing iiti'}</p>
 
       {/* Google button */}
       <button onClick={handleGoogle} disabled={loading} style={S.googleBtn}>
@@ -104,7 +104,7 @@ export default function AuthPage() {
             ))}
           </div>
         </>}
-        <input style={S.input} type="email" placeholder="yourname@iiti.ac.in" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} required />
+        <input style={S.input} type="email" placeholder="email containing iiti" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} required />
         <input style={S.input} type="password" placeholder="Password (min 6 chars)" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} required minLength={6} />
         {error && <div style={S.err}>{error}</div>}
         <button type="submit" disabled={loading} style={{ ...S.btn, opacity: loading ? 0.6 : 1 }}>{loading ? 'Please wait...' : mode === 'signin' ? 'Sign In' : 'Create Account'}</button>
@@ -116,7 +116,7 @@ export default function AuthPage() {
           {mode === 'signin' ? 'Sign Up' : 'Sign In'}
         </button>
       </p>
-      <p style={{ fontSize: '11px', color: 'var(--gray-400)', textAlign: 'center', marginTop: '12px' }}>Only @iiti.ac.in emails are supported</p>
+      <p style={{ fontSize: '11px', color: 'var(--gray-400)', textAlign: 'center', marginTop: '12px' }}>Only emails containing "iiti" are supported</p>
     </div></div>
   );
 }
