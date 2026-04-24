@@ -154,8 +154,10 @@ export default function PollDetailModal({ poll, onClose, role, onClosePoll, user
       if (responses[studentId]) setSubmitted(true);
       const opts = poll.options.map((o, i) => {
         let v = 0;
-        Object.values(responses).forEach(r => { 
-          if (Array.isArray(r.response) ? r.response.includes(i) : r.response === i) v++; 
+        Object.values(responses).forEach(r => {
+          // response can be a number (single) or array (multi-select)
+          const idxs = Array.isArray(r.response) ? r.response : [r.response];
+          if (idxs.includes(i)) v++;
         });
         return { ...o, votes: v };
       });

@@ -174,7 +174,9 @@ function ResultChart({ poll }: { poll: PollResult }) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 md:p-6 space-y-4">
-      {poll.options.map((opt, i) => {
+      {poll.options.map((opt: any, i: number) => {
+        // Options can be plain strings OR rich objects {text, label, image, isCorrect, ...}
+        const optText: string = typeof opt === 'string' ? opt : (opt?.text || opt?.label || `Option ${LABELS[i]}`);
         const count = poll.responses?.[i] ?? 0;
         const pct = total > 0 ? Math.round((count / total) * 100) : 0;
         const isTop = count === Math.max(...Object.values(poll.responses || { 0: 0 })) && count > 0;
@@ -187,7 +189,7 @@ function ResultChart({ poll }: { poll: PollResult }) {
                   style={{ background: COLORS[i % COLORS.length] }}>
                   {LABELS[i]}
                 </span>
-                <span className="text-sm font-medium text-gray-800 leading-tight">{opt}</span>
+                <span className="text-sm font-medium text-gray-800 leading-tight">{optText}</span>
                 {isTop && <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest bg-amber-50 border border-amber-200/50 text-[var(--brand-primary)] px-2 py-0.5 rounded shadow-sm">Top answer</span>}
               </div>
               <div className="flex items-center gap-3 text-xs md:text-sm text-gray-500 shrink-0">

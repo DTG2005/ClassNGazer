@@ -123,17 +123,24 @@ export default function BlackboardView() {
       const p = pollData;
       const n = p.options?.length || 4;
       const counts = {}; for (let i = 0; i < n; i++) counts[i] = 0;
-      Object.values(responses).forEach(r => { const idx = r.response ?? r.responses?.[0]; if (counts[idx] !== undefined) counts[idx]++; });
-      const pcts = {}; for (let i = 0; i < n; i++) pcts[i] = count > 0 ? Math.round((counts[i] / count) * 100) : 0;
+      Object.values(responses).forEach(r => {
+        // response can be a single index (number) or an array (multi-select)
+        const idxs = Array.isArray(r.response) ? r.response : [r.response];
+        idxs.forEach(idx => { if (counts[idx] !== undefined) counts[idx]++; });
+      });
+      const pcts = {};
+      for (let i = 0; i < n; i++) {
+        pcts[i] = count > 0 ? Math.round((counts[i] / count) * 100) : 0;
+      }
       setResults({
         totalResponses: count,
-        distribution: p.options.map((optData, i) => ({ 
-          optionIndex: i, 
-          optionText: typeof optData === 'string' ? optData : optData.text, 
-          optionImage: typeof optData === 'string' ? null : optData.image,
-          count: counts[i], 
-          percentage: pcts[i], 
-          isCorrect: (p.correctOptions || [p.correctOption]).map(Number).includes(i) 
+        distribution: p.options.map((optData, i) => ({
+          optionIndex: i,
+          optionText: typeof optData === 'string' ? optData : (optData.text || optData.label || ''),
+          optionImage: typeof optData === 'string' ? null : (optData.image || null),
+          count: counts[i],
+          percentage: pcts[i],
+          isCorrect: (p.correctOptions || [p.correctOption]).map(Number).includes(i)
         })),
       });
     });
