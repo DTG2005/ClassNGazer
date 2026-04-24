@@ -60,11 +60,12 @@ export default function QuizView({ user, courseId, courseName, courseCode }) {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Fetch quizzes ──
-  const fetchQuizzes = async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const all = await quizDatabase.getQuizzesByCourse(courseId);
+  const fetchQuizzes = async () => {}; // Dummy for manual calls
+
+  useEffect(() => {
+    setLoading(true);
+    
+    let unsubscribe = quizDatabase.subscribeToQuizzes(courseId, async (all) => {
       setQuizzes(all.sort((a,b) => (b.createdAtMs||0) - (a.createdAtMs||0)));
 
       // For students: check which ones they've already answered
@@ -77,24 +78,23 @@ export default function QuizView({ user, courseId, courseName, courseCode }) {
         }));
         setStudentResponses(resMap);
       }
-    } catch (e) { console.error(e); }
-    setLoading(false);
-  };
+      setLoading(false);
+    });
 
-  useEffect(() => {
-    fetchQuizzes();
-    // Listen for live quiz status changes
+    // Listen for live quiz status changes (submission counts)
     liveUnsubRef.current = quizDatabase.listenToLiveQuizzes((liveData) => {
-      // Update submission counts for professors
       const counts = {};
       Object.entries(liveData).forEach(([qid, d]) => {
         if (d?.submissionCount) counts[qid] = d.submissionCount;
       });
       setLiveSubmissions(counts);
-      fetchQuizzes(true);
     });
-    return () => { if (liveUnsubRef.current) liveUnsubRef.current(); };
-  }, [courseId]);  // eslint-disable-line
+
+    return () => { 
+      if (unsubscribe) unsubscribe();
+      if (liveUnsubRef.current) liveUnsubRef.current(); 
+    };
+  }, [courseId, user?.uid, isProfessor]);
 
   // ── CRUD handlers ──
   const handleCreate = async (data) => {

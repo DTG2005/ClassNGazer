@@ -70,39 +70,34 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
     setTimeout(() => setToast(null), 3500);
   };
 
-  const liveUnsubRef = useRef(null);
-  const livePollsInitRef = useRef(false);
-
   useEffect(() => {
-    fetchPolls();
-    liveUnsubRef.current = pollDatabase.listenToLivePolls((liveData) => {
-      if (!livePollsInitRef.current) { livePollsInitRef.current = true; return; }
-      fetchPolls(true);
-    });
+    let unsubscribe;
+    setLoading(true);
+
+    const onData = (all) => {
+      const converted = all.map(toUI).sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+      setPolls(converted);
+      setLoading(false);
+      const active = converted.find(p => p.status === 'active');
+      if (active) startBannerTimer(active);
+      else { if (bannerTimerRef.current) clearInterval(bannerTimerRef.current); setBannerTimeLeft(null); }
+    };
+
+    if (courseId) {
+      unsubscribe = pollDatabase.subscribeToPolls(courseId, onData);
+    } else {
+      unsubscribe = pollDatabase.subscribeToAllPolls(onData);
+    }
+
     return () => {
+      if (unsubscribe) unsubscribe();
       if (bannerTimerRef.current) clearInterval(bannerTimerRef.current);
-      if (liveUnsubRef.current) liveUnsubRef.current();
       if (bannerLivePollUnsubRef.current) bannerLivePollUnsubRef.current();
       bannerPollIdRef.current = null;
     };
   }, [courseId]);
 
-  const fetchPolls = async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      // Fetch polls for this specific course
-      const all = courseId
-        ? await pollDatabase.getPollsByCourse(courseId)
-        : await pollDatabase.getAllPolls();
-      // Sort client-side newest-first using createdAtMs (handles serverTimestamp pending state)
-      const converted = all.map(toUI).sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
-      setPolls(converted);
-      const active = converted.find(p => p.status === 'active');
-      if (active) startBannerTimer(active);
-      else { if (bannerTimerRef.current) clearInterval(bannerTimerRef.current); setBannerTimeLeft(null); }
-    } catch (e) { console.error(e); }
-    setLoading(false);
-  };
+  const fetchPolls = async () => {}; // Kept as dummy for compatibility with useScheduleChecker and other manual calls
 
   useScheduleChecker(polls, fetchPolls);
 
@@ -121,7 +116,7 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
     scheduledFor: p.scheduledFor || null,
     solution: p.solution || '',
     correctOption: p.correctOption ?? -1,
-    correctOptions: p.correctOptions || [],
+    correctOptions: p.correctOptions || (p.correctOption !== undefined && p.correctOption !== -1 ? [p.correctOption] : []),
     options: (p.options || []).map((opt, i) => ({
       id: String.fromCharCode(97 + i), label: String.fromCharCode(65 + i),
       text: typeof opt === 'string' ? opt : (opt?.text || opt?.label || String(opt)),
@@ -385,7 +380,7 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
           <div style={{ marginBottom: '24px' }}>
             <div style={S.secHeader}><div><h2 style={S.secTitle}>Drafts</h2><p style={S.secSub}>{draftPolls.length} ready</p></div></div>
             <div style={S.pollGrid}>{draftPolls.map(p => {
-              const isComplete = p.question && p.options?.length >= 2 && p.correctIndices?.length > 0;
+              const isComplete = p.question && p.options?.length >= 2 && p.correctOptions?.length > 0;
               return (
                 <div key={p.id} style={{ ...S.pollCard, borderColor: 'var(--orange-dim)', borderStyle: 'dashed', cursor: 'pointer' }} onClick={() => setSelectedPoll(p)}>
                   <div style={S.cardTop}>

@@ -1,7 +1,7 @@
 import { db, realtimeDb } from '../../lib/firebase/init';
 import { 
   collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp, increment
+  query, where, orderBy, serverTimestamp, increment, onSnapshot
 } from 'firebase/firestore';
 import { ref, set, remove, onValue, get } from 'firebase/database';
 
@@ -30,6 +30,20 @@ export const pollDatabase = {
       const snap = await getDocs(q);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (error) { console.error("Error:", error); return []; }
+  },
+
+  subscribeToPolls(courseId, callback) {
+    const q = query(collection(db, "polls"), where("courseId", "==", courseId), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => console.error("Error subscribing to polls:", error));
+  },
+
+  subscribeToAllPolls(callback) {
+    const q = query(collection(db, "polls"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => console.error("Error subscribing to polls:", error));
   },
 
   async getPollsByProfessor(professorId) {

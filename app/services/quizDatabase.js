@@ -1,7 +1,7 @@
 import { db, realtimeDb } from '../../lib/firebase/init';
 import {
   collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp, increment,
+  query, where, orderBy, serverTimestamp, increment, onSnapshot
 } from 'firebase/firestore';
 import { ref, set, remove, onValue, get } from 'firebase/database';
 
@@ -79,6 +79,24 @@ export const quizDatabase = {
       const snap = await getDocs(q);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) { console.error(e); return []; }
+  },
+
+  subscribeToQuizzes(courseId, callback) {
+    const q = query(
+      collection(db, 'quizzes'),
+      where('courseId', '==', courseId),
+      orderBy('createdAt', 'desc'),
+    );
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => console.error("Error subscribing to quizzes:", error));
+  },
+
+  subscribeToAllQuizzes(callback) {
+    const q = query(collection(db, 'quizzes'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => console.error("Error subscribing to quizzes:", error));
   },
 
   // ── Update quiz fields ──

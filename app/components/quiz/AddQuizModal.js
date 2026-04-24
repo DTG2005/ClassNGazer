@@ -60,7 +60,7 @@ function ImageInput({ file, setFile }) {
 }
 
 // ── Single Question Editor ──
-function QuestionEditor({ q, idx, onChange, onRemove, canRemove, preview, negativeMarking }) {
+function QuestionEditor({ q, idx, onChange, onClear, onRemove, canRemove, preview, negativeMarking }) {
   const getLabel = i => String.fromCharCode(65 + i);
 
   const setField = (field, val) => onChange({ ...q, [field]: val });
@@ -104,6 +104,10 @@ function QuestionEditor({ q, idx, onChange, onRemove, canRemove, preview, negati
               onBlur={e => { if (e.target.value === '' || isNaN(Number(e.target.value))) setField('marks', '1'); }}
               style={{ width:'54px', padding:'4px 6px', border:`1px solid ${(q.marks === '' || q.marks == null) ? '#F87171' : 'var(--gray-200)'}`, borderRadius:'6px', fontSize:'12px', fontFamily:'DM Mono', textAlign:'center', background:'var(--white)' }} />
           </label>
+          <button onClick={() => { if(confirm('Clear all fields for this question?')) onClear(); }} title="Clear question fields"
+            style={{ background:'var(--gray-200)', color:'var(--gray-700)', border:'none', borderRadius:'6px', padding:'4px 8px', fontSize:'11px', fontWeight:700, cursor:'pointer' }}>
+            🧹 Clear
+          </button>
           {canRemove && (
             <button onClick={onRemove} title="Remove question"
               style={{ background:'var(--red-pale)', color:'var(--red)', border:'none', borderRadius:'6px', padding:'4px 8px', fontSize:'11px', fontWeight:700, cursor:'pointer' }}>
@@ -231,15 +235,16 @@ const blankQuestion = () => ({
 // ── Main Modal ──
 export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
   const isEditing = !!initialData;
+  const draft = (!isEditing && typeof localStorage !== 'undefined') ? (() => { try { return JSON.parse(localStorage.getItem('quiz_draft')) || {}; } catch(e){ return {}; } })() : {};
 
-  const [title,           setTitle]           = useState(initialData?.title || '');
-  const [timer,           setTimer]           = useState(initialData?.timer || 600);
-  const [timerMins, setTimerMins] = useState(String(Math.floor((initialData?.timer || 600) / 60)));
-  const [timerSecs, setTimerSecs] = useState(String((initialData?.timer || 600) % 60));
-  const [negativeMarking, setNegativeMarking] = useState(initialData?.negativeMarking || false);
+  const [title,           setTitle]           = useState(initialData?.title || draft.title || '');
+  const [timer,           setTimer]           = useState(initialData?.timer || draft.timer || 600);
+  const [timerMins, setTimerMins] = useState(String(Math.floor((initialData?.timer || draft.timer || 600) / 60)));
+  const [timerSecs, setTimerSecs] = useState(String((initialData?.timer || draft.timer || 600) % 60));
+  const [negativeMarking, setNegativeMarking] = useState(initialData?.negativeMarking ?? draft.negativeMarking ?? false);
   const [negativeValue,   setNegativeValue]   = useState(initialData?.negativeValue || 0.25);
-  const [shuffleQ,        setShuffleQ]        = useState(initialData?.shuffleQuestions || false);
-  const [shuffleOpts,     setShuffleOpts]     = useState(initialData?.shuffleOptions || false);
+  const [shuffleQ,        setShuffleQ]        = useState(initialData?.shuffleQuestions ?? draft.shuffleQ ?? false);
+  const [shuffleOpts,     setShuffleOpts]     = useState(initialData?.shuffleOptions ?? draft.shuffleOpts ?? false);
   const [questions,       setQuestions]       = useState(() => {
     if (initialData?.questions?.length) {
       return initialData.questions.map(q => ({
@@ -251,10 +256,33 @@ export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
         solution: q.solution || '', solutionImage: q.solutionImage || null,
       }));
     }
+    if (draft.questions?.length) return draft.questions;
     return [blankQuestion()];
   });
   const [preview,     setPreview]     = useState(false);
   const [submitting,  setSubmitting]  = useState(false);
+
+
+
+  // Save draft to localStorage
+  useEffect(() => {
+    if (isEditing) return;
+    const draft = {
+      title,
+      timer,
+      negativeMarking,
+      shuffleQ,
+      shuffleOpts,
+      // Strip images from questions to avoid large local storage footprint
+      questions: questions.map(q => ({
+        ...q,
+        questionImage: null,
+        solutionImage: null,
+        options: q.options.map(o => ({ ...o, image: null }))
+      }))
+    };
+    localStorage.setItem('quiz_draft', JSON.stringify(draft));
+  }, [title, timer, negativeMarking, shuffleQ, shuffleOpts, questions, isEditing]);
 
   // Sync timer mins/secs strings → total seconds
   useEffect(() => {
@@ -334,6 +362,7 @@ export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
         await onEdit(initialData.id, payload);
       } else {
         await onAdd(payload);
+        if (typeof localStorage !== 'undefined') localStorage.removeItem('quiz_draft');
       }
     } catch (e) {
       console.error(e);
@@ -347,6 +376,19 @@ export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
   const _s = parseInt(timerSecs, 10) || 0;
   const fmtTimer = `${String(_m).padStart(2,'0')}:${String(_s).padStart(2,'0')}`;
 
+  const handleClearDraft = () => {
+    if (!confirm('Are you sure you want to clear the entire quiz draft and start fresh?')) return;
+    setTitle('');
+    setTimer(600);
+    setTimerMins('10');
+    setTimerSecs('0');
+    setNegativeMarking(false);
+    setShuffleQ(false);
+    setShuffleOpts(false);
+    setQuestions([blankQuestion()]);
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('quiz_draft');
+  };
+
   return (
     <div style={ov} onClick={onClose}>
       <div style={card} onClick={e => e.stopPropagation()}>
@@ -358,6 +400,13 @@ export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
             <div style={hdrS}>{questions.length} question{questions.length!==1?'s':''} · {totalMarks} total marks · {fmtTimer}</div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            {!isEditing && (
+              <button onClick={handleClearDraft}
+                style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:700, background:'var(--red-pale)', color:'var(--red)', border:'none', cursor:'pointer' }}
+                title="Clear saved draft">
+                🧹 Clear Draft
+              </button>
+            )}
             <button onClick={() => setPreview(p => !p)}
               style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:700, background: preview ? 'var(--orange)' : 'var(--gray-100)', color: preview ? 'white' : 'var(--gray-600)', border:'none' }}>
               {preview ? 'Edit' : 'Preview'}
@@ -443,6 +492,7 @@ export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
             {questions.map((q, i) => (
               <QuestionEditor key={i} q={q} idx={i}
                 onChange={updated => updateQuestion(i, updated)}
+                onClear={() => updateQuestion(i, blankQuestion())}
                 onRemove={() => removeQuestion(i)}
                 canRemove={questions.length > 1}
                 preview={preview}

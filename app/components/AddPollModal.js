@@ -32,15 +32,19 @@ function LatexInline({ text, className = '' }) {
 
 export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
   const isEditing = !!initialData;
+  const draft = (!isEditing && typeof localStorage !== 'undefined') ? (() => { try { return JSON.parse(localStorage.getItem('poll_draft')) || {}; } catch(e){ return {}; } })() : {};
 
-  const [question, setQuestion] = useState(initialData?.question || '');
+  const [question, setQuestion] = useState(initialData?.question || draft.question || '');
   const [questionImage, setQuestionImage] = useState(initialData?.questionImage || null);
-  const [topic, setTopic] = useState(initialData?.topic || '');
+  const [topic, setTopic] = useState(initialData?.topic || draft.topic || '');
   
   // Format options with dynamic length and image support
   const [options, setOptions] = useState(() => {
     if (initialData?.options) {
       return initialData.options.map(o => ({ text: typeof o === 'string' ? o : (o.text || ''), image: typeof o === 'string' ? null : (o.image || null) }));
+    }
+    if (draft.options) {
+      return draft.options.map(o => ({ text: o.text || '', image: null }));
     }
     return [{ text: '', image: null }, { text: '', image: null }, { text: '', image: null }, { text: '', image: null }];
   });
@@ -50,13 +54,14 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
     if (initialData?.correctOption !== undefined && initialData?.correctOption !== -1 && initialData?.correctOption !== null) return [initialData.correctOption];
     if (initialData?.options) {
       const idxs = initialData.options.map((o, i) => o.isCorrect ? i : -1).filter(i => i >= 0);
-      return idxs.length > 0 ? idxs : [];
+      if (idxs.length > 0) return idxs;
     }
+    if (draft.correctIndices) return draft.correctIndices;
     return [];
   });
 
-  const [timer, setTimer] = useState(initialData?.timeLimit || 60);
-  const [solution, setSolution] = useState(initialData?.solution || '');
+  const [timer, setTimer] = useState(initialData?.timeLimit || draft.timer || 60);
+  const [solution, setSolution] = useState(initialData?.solution || draft.solution || '');
   const [solutionImage, setSolutionImage] = useState(initialData?.solutionImage || null);
   const [mode, setMode] = useState('live');
   const [scheduleDate, setScheduleDate] = useState('');
@@ -64,24 +69,7 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
   const [preview, setPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Load draft from localStorage
-  useEffect(() => {
-    if (isEditing) return;
-    try {
-      const saved = localStorage.getItem('poll_draft');
-      if (saved) {
-        const draft = JSON.parse(saved);
-        if (draft.question) setQuestion(draft.question);
-        if (draft.topic) setTopic(draft.topic);
-        if (draft.options) setOptions(draft.options.map(o => ({ text: o.text || '', image: null })));
-        if (draft.correctIndices) setCorrectIndices(draft.correctIndices);
-        if (draft.timer) setTimer(draft.timer);
-        if (draft.solution) setSolution(draft.solution);
-      }
-    } catch (e) {
-      console.error('Failed to load poll draft', e);
-    }
-  }, [isEditing]);
+
 
   // Save draft to localStorage
   useEffect(() => {
@@ -181,6 +169,19 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
   const isValid = (question.trim() || questionImage) && correctIndices.length > 0 && options.every(o => o.text.trim() || o.image);
   const today = new Date().toISOString().split('T')[0];
 
+  const handleClearDraft = () => {
+    if (!confirm('Are you sure you want to clear your current draft and start fresh?')) return;
+    setQuestion('');
+    setQuestionImage(null);
+    setTopic('');
+    setOptions([{ text: '', image: null }, { text: '', image: null }, { text: '', image: null }, { text: '', image: null }]);
+    setCorrectIndices([]);
+    setTimer(60);
+    setSolution('');
+    setSolutionImage(null);
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('poll_draft');
+  };
+
   const ImageInput = ({ file, setFile }) => {
     const isUrl = typeof file === 'string';
     const previewUrl = file ? (isUrl ? file : URL.createObjectURL(file)) : null;
@@ -232,6 +233,13 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
       <div style={hdr}>
         <div><div style={hdrT}>{isEditing ? 'Edit Poll' : 'New Poll'}</div><div style={hdrS}>{isEditing ? 'Update question, options, or timer' : 'Create, schedule, or save as draft'}</div></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {!isEditing && (
+            <button type="button" onClick={handleClearDraft}
+              style={{ padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: 'var(--red-pale)', color: 'var(--red)', border: 'none', cursor: 'pointer' }}
+              title="Clear saved draft">
+              🧹 Clear Draft
+            </button>
+          )}
           <button type="button" onClick={() => setPreview(p => !p)}
             style={{ padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
               background: preview ? 'var(--orange)' : 'var(--gray-100)',
