@@ -11,8 +11,8 @@ export default function ExportModal({ poll, onClose }) {
     try {
       if (type === 'csv') await exportService.downloadCSV(poll.id);
       else await exportService.downloadJSON(poll.id);
-      setMsg(`✅ ${type.toUpperCase()} downloaded!`);
-    } catch (e) { setMsg('❌ ' + e.message); }
+      setMsg(`✓ ${type.toUpperCase()} downloaded!`);
+    } catch (e) { setMsg('Error: ' + e.message); }
     setExporting(false);
   };
 
@@ -27,14 +27,14 @@ export default function ExportModal({ poll, onClose }) {
         <div style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--gray-600)' }}>
           <span>{poll.totalResponses} responses</span><span>·</span><span>{poll.topic}</span>
         </div>
-        {msg && <div style={{ padding: '10px', borderRadius: 'var(--radius-sm)', fontSize: '13px', background: msg.startsWith('✅') ? 'var(--green-pale)' : 'var(--red-pale)', color: msg.startsWith('✅') ? '#15803D' : '#B91C1C' }}>{msg}</div>}
+        {msg && <div style={{ padding: '10px', borderRadius: 'var(--radius-sm)', fontSize: '13px', background: msg.startsWith('✓') ? 'var(--green-pale)' : 'var(--red-pale)', color: msg.startsWith('✓') ? '#15803D' : '#B91C1C' }}>{msg}</div>}
         <button onClick={() => handleExport('csv')} disabled={exporting}
           style={{ width: '100%', padding: '14px', background: 'var(--green)', color: 'white', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 700, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          📊 Download CSV
+          Download CSV
         </button>
         <button onClick={() => handleExport('json')} disabled={exporting}
           style={{ width: '100%', padding: '14px', background: 'var(--blue)', color: 'white', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 700, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          📋 Download JSON
+          Download JSON
         </button>
         <button onClick={onClose} style={{ width: '100%', padding: '12px', background: 'var(--gray-100)', color: 'var(--gray-600)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, border: 'none' }}>Close</button>
       </div>

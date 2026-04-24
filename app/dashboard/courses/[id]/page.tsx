@@ -127,8 +127,8 @@ export default function CoursePage() {
         {/* Polls / Quizzes tab bar */}
         <div style={{ display:'flex', borderBottom:'2px solid #EDEDEA', background:'#F7F6F4', flexShrink:0 }}>
           {[
-            { key:'polls',   label:'📊 Polls',  accent:'#FF6B2B' },
-            { key:'quizzes', label:'🧠 Quizzes', accent:'#7C3AED' },
+            { key:'polls',   label:'Polls',  accent:'#FF6B2B' },
+            { key:'quizzes', label:'Quizzes', accent:'#7C3AED' },
           ].map((t) => (
             <button
               key={t.key}

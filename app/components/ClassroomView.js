@@ -338,10 +338,10 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
                 {isProfessor 
                   ? 'View Results →' 
                   : (typeof localStorage !== 'undefined' && localStorage.getItem(`poll-draft-${activePolls[0].id}-${user?.uid || (typeof window !== 'undefined' ? 'anon-' + sessionStorage.getItem('cng-sid') : 'unknown')}`))
-                    ? '📝 Resume Incomplete Poll'
+                    ? 'Resume Incomplete Poll'
                     : 'Answer Now →'}
               </button>
-              {isProfessor && <button style={{ ...S.viewLiveBtn, background: 'rgba(255,255,255,0.2)', color: 'white' }} onClick={() => window.open(`/blackboard/${activePolls[0].id}`, '_blank')}>📺</button>}
+              {isProfessor && <button style={{ ...S.viewLiveBtn, background: 'rgba(255,255,255,0.2)', color: 'white' }} onClick={() => window.open(`/blackboard/${activePolls[0].id}`, '_blank')}></button>}
             </div>
           </div>
         )}
@@ -354,7 +354,7 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
               {scheduledPolls.map(p => (
                 <div key={p.id} style={{ ...S.pollCard, borderColor: '#93C5FD', background: '#EFF6FF' }}>
                   <div style={S.cardTop}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#1D4ED8', background: '#DBEAFE', padding: '2px 8px', borderRadius: '99px' }}>📅 SCHEDULED</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#1D4ED8', background: '#DBEAFE', padding: '2px 8px', borderRadius: '99px' }}>SCHEDULED</span>
                     <span style={{ fontSize: '11px', color: '#3B82F6', fontFamily: 'DM Mono', fontWeight: 700 }}>⏱ {p.timeLimit}s</span>
                   </div>
                   <div style={S.cardQ}><LatexInline text={p.question} /></div>
@@ -366,8 +366,8 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => handleStart(p.id)} style={{ flex: 1, padding: '8px', background: 'var(--green)', color: 'white', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>▶ Start Now</button>
-                    <button onClick={() => setEditPoll(p)} style={{ padding: '8px 12px', background: 'var(--gray-100)', color: 'var(--gray-700)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>✏️</button>
-                    <button onClick={() => handleDelete(p.id)} style={{ padding: '8px 12px', background: 'var(--red-pale)', color: 'var(--red)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>🗑</button>
+                    <button onClick={() => setEditPoll(p)} style={{ padding: '8px 12px', background: 'var(--gray-100)', color: 'var(--gray-700)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>Edit</button>
+                    <button onClick={() => handleDelete(p.id)} style={{ padding: '8px 12px', background: 'var(--red-pale)', color: 'var(--red)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>×</button>
                   </div>
                 </div>
               ))}
@@ -390,8 +390,8 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
                   <div style={S.cardQ}><LatexInline text={p.question || 'No question added...'} /></div>
                   <div style={{ display: 'flex', gap: '8px' }} onClick={e => e.stopPropagation()}>
                     {isComplete && <button onClick={() => handleStart(p.id)} style={{ flex: 1, padding: '8px', background: 'var(--green)', color: 'white', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>▶ Start</button>}
-                    <button onClick={() => setEditPoll(p)} style={{ padding: '8px 12px', background: 'var(--gray-100)', color: 'var(--gray-700)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>✏️</button>
-                    <button onClick={() => handleDelete(p.id)} style={{ padding: '8px 12px', background: 'var(--red-pale)', color: 'var(--red)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>🗑</button>
+                    <button onClick={() => setEditPoll(p)} style={{ padding: '8px 12px', background: 'var(--gray-100)', color: 'var(--gray-700)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>Edit</button>
+                    <button onClick={() => handleDelete(p.id)} style={{ padding: '8px 12px', background: 'var(--red-pale)', color: 'var(--red)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700 }}>×</button>
                   </div>
                 </div>
               );
@@ -403,8 +403,8 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
         <div style={S.secHeader}>
           <div><h2 style={S.secTitle}>Past Polls</h2><p style={S.secSub}>{pastPolls.length} completed</p></div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            {isProfessor && <button style={{ ...S.sideBtn, padding: '8px 14px' }} onClick={() => setShowAnalytics(true)}>📈 Analytics</button>}
-            {isProfessor && <button style={{ ...S.sideBtn, padding: '8px 14px' }} onClick={() => setShowQR(true)}>📱 QR</button>}
+            {isProfessor && <button style={{ ...S.sideBtn, padding: '8px 14px' }} onClick={() => setShowAnalytics(true)}>Analytics</button>}
+            {isProfessor && <button style={{ ...S.sideBtn, padding: '8px 14px' }} onClick={() => setShowQR(true)}>QR Code</button>}
             {isProfessor && <button style={S.addBtn} onClick={() => setShowAddPoll(true)}>+ New Poll</button>}
           </div>
         </div>
@@ -441,9 +441,9 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingTop: '12px', borderTop: '1px solid var(--gray-100)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1 }}>{p.totalResponses}</span><span style={{ fontSize: '10px', color: 'var(--gray-400)', fontWeight: 600 }}>responses</span></div>
                     {isProfessor && <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-                      <button onClick={(e) => { e.stopPropagation(); handleRestart(p); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--blue-pale', color: '#1D4ED8', border: '1px solid #BFDBFE', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Restart as New">🔄</button>
-                      <button onClick={(e) => { e.stopPropagation(); setExportPoll(p); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--gray-50)', border: '1px solid var(--gray-100)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Export">📥</button>
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--gray-50)', border: '1px solid var(--gray-100)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete">🗑</button>
+                      <button onClick={(e) => { e.stopPropagation(); handleRestart(p); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--blue-pale', color: '#1D4ED8', border: '1px solid #BFDBFE', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Restart as New">↻</button>
+                      <button onClick={(e) => { e.stopPropagation(); setExportPoll(p); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--gray-50)', border: '1px solid var(--gray-100)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Export">↓</button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--gray-50)', border: '1px solid var(--gray-100)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete">×</button>
                     </div>}
                   </div>
                 </div>

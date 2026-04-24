@@ -91,7 +91,7 @@ function JoinCodeModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center" onClick={e => e.stopPropagation()}>
-        <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4 text-2xl">✅</div>
+        <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4 text-sm font-bold text-green-600">✓</div>
         <h2 className="text-base font-semibold text-gray-900 mb-1">Course Created!</h2>
         <p className="text-xs text-gray-400 mb-5">Share this join code with your students</p>
 
@@ -145,14 +145,16 @@ function DeleteModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4 text-xl">🗑️</div>
+        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" className="text-red-500"><path d="M6 2h4a1 1 0 011 1v1H5V3a1 1 0 011-1zM3 5h10l-1 9H4L3 5zm3 2v5h1V7H6zm3 0v5h1V7H9z"/></svg>
+        </div>
         <h2 className="text-base font-semibold text-gray-900 text-center mb-1">Delete Course?</h2>
         <p className="text-xs text-gray-400 text-center mb-1">You are about to delete</p>
         <p className="text-sm font-medium text-gray-800 text-center mb-1">&quot;{course.title}&quot;</p>
         <p className="text-xs font-mono text-gray-400 text-center mb-5">{course.code}</p>
         <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mb-5">
           <p className="text-xs text-red-600 text-center">
-            ⚠️ This will permanently delete the course and all its polls. This cannot be undone.
+            This will permanently delete the course and all its polls. This cannot be undone.
           </p>
         </div>
         {error && <p className="text-xs text-red-500 text-center mb-3">{error}</p>}
@@ -277,7 +279,7 @@ export default function CoursesPage() {
           <SkeletonGrid count={6} />
         ) : filtered.length === 0 ? (
           <div className="bg-white border border-dashed border-gray-200 rounded-xl py-12 md:py-16 flex flex-col items-center px-4 text-center">
-            <div className="text-3xl mb-3">📚</div>
+            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3 text-lg font-bold text-gray-400">C</div>
             <p className="text-sm font-medium text-gray-700">
               {search ? 'No courses match your search' : 'No courses yet'}
             </p>

@@ -165,7 +165,7 @@ export default function CourseModal({ onClose, user, onCourseChange }) {
               {(selectedCourse.ta || []).map(tid => (
                 <div key={tid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--blue-pale)', borderRadius: 'var(--radius-sm)', fontSize: '13px' }}>
                   <span>{tid}</span>
-                  <button onClick={async () => { await courseDatabase.removeTa(selectedCourse.id, tid); setMsg('✅ TA removed'); loadCourses(); }} style={{ fontSize: '11px', color: 'var(--red)', fontWeight: 700 }}>Remove</button>
+                  <button onClick={async () => { await courseDatabase.removeTa(selectedCourse.id, tid); setMsg('TA removed'); loadCourses(); }} style={{ fontSize: '11px', color: 'var(--red)', fontWeight: 700 }}>Remove</button>
                 </div>
               ))}
             </>}

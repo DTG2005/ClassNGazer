@@ -47,11 +47,11 @@ export default function QRCode({ value, courseId, size = 200, onClose }) {
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
           <button onClick={() => copyToClipboard(joinLink, 'link')}
             style={{ flex: 1, padding: '11px', background: copied === 'link' ? 'var(--green)' : 'var(--orange)', color: 'white', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, border: 'none', boxShadow: 'var(--shadow-orange)', transition: 'all 0.2s' }}>
-            {copied === 'link' ? '✓ Copied!' : '🔗 Copy Link'}
+            {copied === 'link' ? '✓ Copied!' : 'Copy Link'}
           </button>
           <button onClick={() => copyToClipboard(value, 'code')}
             style={{ flex: 1, padding: '11px', background: copied === 'code' ? 'var(--green)' : 'var(--gray-100)', color: copied === 'code' ? 'white' : 'var(--gray-700)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, border: 'none', transition: 'all 0.2s' }}>
-            {copied === 'code' ? '✓ Copied!' : '📋 Copy Code'}
+            {copied === 'code' ? '✓ Copied!' : 'Copy Code'}
           </button>
         </div>
       </div>

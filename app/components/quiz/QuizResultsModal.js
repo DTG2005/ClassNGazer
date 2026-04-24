@@ -30,7 +30,7 @@ function LatexInline({ text }) {
 }
 
 // ── Medal colours for leaderboard ──
-const MEDALS = ['🥇','🥈','🥉'];
+const MEDALS = ['1st','2nd','3rd'];
 const ACCENTS = ['#F5A623','#1D9E75','#378ADD','#7F77DD','#D85A30','#D4537E'];
 
 export default function QuizResultsModal({ quiz, onClose }) {
@@ -86,7 +86,7 @@ export default function QuizResultsModal({ quiz, onClose }) {
             <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
               <button onClick={handleExport} disabled={exporting}
                 style={{ padding:'8px 16px', borderRadius:'var(--radius-sm)', background:'rgba(245,166,35,0.15)', border:'1px solid rgba(245,166,35,0.4)', color:'#F5A623', fontSize:'12px', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
-                {exporting ? '⏳ Exporting...' : '📥 Export CSV'}
+                {exporting ? 'Exporting...' : 'Export CSV'}
               </button>
               <button style={{ ...S.close, background:'rgba(255,255,255,0.1)', color:'white' }} onClick={onClose}>✕</button>
             </div>
@@ -111,8 +111,8 @@ export default function QuizResultsModal({ quiz, onClose }) {
         {/* ── Tabs ── */}
         <div style={{ display:'flex', borderBottom:'2px solid var(--gray-100)', background:'var(--gray-50)' }}>
           {[
-            { key:'leaderboard', label:'🏆 Leaderboard' },
-            { key:'perquestion', label:'📊 Per Question' },
+            { key:'leaderboard', label:'Leaderboard' },
+            { key:'perquestion', label:'Per Question' },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               style={{ flex:1, padding:'12px', fontSize:'12px', fontWeight:700, border:'none', background:'transparent', cursor:'pointer', transition:'all 0.15s',
@@ -134,7 +134,7 @@ export default function QuizResultsModal({ quiz, onClose }) {
             </div>
           ) : results.length === 0 ? (
             <div style={{ textAlign:'center', padding:'60px', color:'var(--gray-400)' }}>
-              <div style={{ fontSize:'32px', marginBottom:'12px' }}>📭</div>
+              <div style={{ fontSize:'32px', marginBottom:'12px' }}></div>
               <div style={{ fontSize:'14px', fontWeight:600 }}>No submissions yet</div>
             </div>
           ) : tab === 'leaderboard' ? (

@@ -270,7 +270,7 @@ export default function BlackboardView() {
               onMouseEnter={e => e.currentTarget.style.background = '#333'}
               onMouseLeave={e => e.currentTarget.style.background = '#222'}
             >
-              {showPieChart ? '📊 View as Bar Chart' : '🥧 View as Pie Chart'}
+              {showPieChart ? 'View as Bar Chart' : 'View as Pie Chart'}
             </button>
           )}
 
@@ -356,7 +356,7 @@ export default function BlackboardView() {
       {/* Solution — only shown after poll ends */}
       {ended && (poll.solution || poll.solutionImage) && (
         <div style={{ marginTop: '32px', padding: '20px 24px', borderRadius: '16px', background: '#1a1500', border: '1px solid #3a2e00' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#CA8A04', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>💡 Solution</div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#CA8A04', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>Solution</div>
           {poll.solution && <div style={{ fontSize: '18px', color: '#FEF08A', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}><LatexBB text={poll.solution} /></div>}
           {poll.solutionImage && (
             <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -370,7 +370,7 @@ export default function BlackboardView() {
       {ended && results?.distribution && (
         <div style={{ marginTop: '20px', padding: '16px 24px', borderRadius: '16px', background: '#052e16', border: '1px solid #166534' }}>
           <div style={{ fontSize: '14px', fontWeight: 700, color: '#4ADE80', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            ✅ Correct Answer: {results.distribution.filter(d => d.isCorrect).map(d => `${String.fromCharCode(65 + d.optionIndex)} — ${d.optionText}`).join(', ')}
+            Correct Answer: {results.distribution.filter(d => d.isCorrect).map(d => `${String.fromCharCode(65 + d.optionIndex)} — ${d.optionText}`).join(', ')}
           </div>
         </div>
       )}

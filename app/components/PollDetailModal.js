@@ -269,7 +269,7 @@ export default function PollDetailModal({ poll, onClose, role, onClosePoll, user
               : pollClosed ? { background: 'var(--gray-100)', color: 'var(--gray-600)' }
               : { background: 'var(--red-pale)', color: 'var(--red)' })
           }}>
-            {isActive ? '● Live' : pollClosed ? '✓ Closed' : '⏱ Time Up'}
+            {isActive ? '● Live' : pollClosed ? '✓ Closed' : 'Time Up'}
           </span>
           )}
         </div>
@@ -281,7 +281,7 @@ export default function PollDetailModal({ poll, onClose, role, onClosePoll, user
               onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-200)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--gray-100)'}
             >
-              {showPieChart ? '📊 Bar Chart' : '🥧 Pie Chart'}
+              {showPieChart ? 'Bar Chart' : 'Pie Chart'}
             </button>
           )}
           <button style={S.close} onClick={onClose}>✕</button>
@@ -431,7 +431,7 @@ export default function PollDetailModal({ poll, onClose, role, onClosePoll, user
       {/* ── Solution ── */}
       {(pollClosed || (poll.status === 'draft' && role === 'professor')) && (poll.solution || poll.solutionImage) && (
         <div style={{ margin: '0 24px 20px', padding: '16px 18px', borderRadius: 'var(--radius-md)', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>💡 Solution</div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Solution</div>
           {poll.solution && <div style={{ fontSize: '14px', color: '#78350F', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}><LatexInline text={poll.solution} /></div>}
           {poll.solutionImage && (
             <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -455,7 +455,7 @@ export default function PollDetailModal({ poll, onClose, role, onClosePoll, user
       {role === 'student' && submitted && !pollClosed && (
         <div style={{ padding: '0 24px 24px' }}>
           <div style={{ padding: '16px 18px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, textAlign: 'center', background: 'var(--blue-pale)', color: '#1D4ED8', border: '1px solid #93C5FD' }}>
-            <div style={{ fontSize: '20px', marginBottom: '6px' }}>✅</div>
+            <div style={{ fontSize: '20px', marginBottom: '6px' }}>✓</div>
             Response recorded!
             <div style={{ fontSize: '12px', fontWeight: 400, color: '#3B82F6', marginTop: '4px' }}>
               Results will be shown after the professor ends the poll. You can change your answer until then.
@@ -485,9 +485,9 @@ export default function PollDetailModal({ poll, onClose, role, onClosePoll, user
               : { background: 'var(--red-pale)', color: '#B91C1C' })
           }}>
             {feedbackStatus === 'correct'
-              ? '🎉 Correct! Well done.'
+              ? 'Correct! Well done.'
               : feedbackStatus === 'partial'
-              ? '⚠️ Partially correct. You got some right, but missed others.'
+              ? 'Partially correct. You got some right, but missed others.'
               : `✗ Incorrect.`}
             {feedbackStatus !== 'correct' && (
               <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 400 }}>
@@ -518,7 +518,7 @@ export default function PollDetailModal({ poll, onClose, role, onClosePoll, user
           {poll.status === 'draft' && onEdit && (
             <button onClick={() => onEdit(poll)}
               style={{ padding: '10px 20px', borderRadius: 'var(--radius-md)', background: 'var(--gray-100)', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 700, border: 'none' }}>
-              ✏️ Edit Poll
+              Edit Poll
             </button>
           )}
           {(expired || pollClosed) && <span style={{ fontSize: '13px', color: 'var(--gray-400)', fontWeight: 600 }}>Poll ended</span>}

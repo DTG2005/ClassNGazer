@@ -70,7 +70,7 @@ export default function AuthPage() {
       <div style={{ display: 'flex', gap: '12px', margin: '20px 0' }}>
         {['student', 'professor'].map(r => (
           <button key={r} onClick={() => setRole(r)} style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-md)', border: `2px solid ${role === r ? 'var(--orange)' : 'var(--gray-100)'}`, background: role === r ? 'var(--orange-pale)' : 'var(--gray-50)', textAlign: 'center', transition: 'all 0.15s' }}>
-            <div style={{ fontSize: '24px', marginBottom: '4px' }}>{r === 'student' ? '🎓' : '👨‍🏫'}</div>
+            <div style={{ fontSize: '14px', fontWeight: 800, marginBottom: '4px', color: role === r ? 'var(--orange)' : 'var(--gray-600)' }}>{r === 'student' ? 'S' : 'T'}</div>
             <div style={{ fontSize: '13px', fontWeight: 700, color: role === r ? 'var(--orange)' : 'var(--gray-600)', textTransform: 'capitalize' }}>{r}</div>
           </button>
         ))}
@@ -100,7 +100,7 @@ export default function AuthPage() {
           <input style={S.input} placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required />
           <div style={{ display: 'flex', gap: '8px' }}>
             {['student', 'professor'].map(r => (
-              <button key={r} type="button" onClick={() => setRole(r)} style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-sm)', border: `2px solid ${role === r ? 'var(--orange)' : 'var(--gray-100)'}`, background: role === r ? 'var(--orange-pale)' : 'transparent', fontSize: '12px', fontWeight: 700, color: role === r ? 'var(--orange)' : 'var(--gray-600)', textTransform: 'capitalize' }}>{r === 'student' ? '🎓 ' : '👨‍🏫 '}{r}</button>
+              <button key={r} type="button" onClick={() => setRole(r)} style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-sm)', border: `2px solid ${role === r ? 'var(--orange)' : 'var(--gray-100)'}`, background: role === r ? 'var(--orange-pale)' : 'transparent', fontSize: '12px', fontWeight: 700, color: role === r ? 'var(--orange)' : 'var(--gray-600)', textTransform: 'capitalize' }}>{r}</button>
             ))}
           </div>
         </>}

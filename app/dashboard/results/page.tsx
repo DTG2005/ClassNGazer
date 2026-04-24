@@ -18,9 +18,9 @@ type PollResult = {
 export default function ResultsPage() {
   const { user, role, loading: authLoading } = useAuth() as any;
   const router = useRouter();
-  const [results, setResults]         = useState<PollResult[]>([]);
+  const [results, setResults] = useState<PollResult[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
-  const [selected, setSelected]       = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => { if (!authLoading && (!user || role !== 'teacher')) router.push('/auth'); }, [user, authLoading, router, role]);
 
@@ -77,18 +77,18 @@ export default function ResultsPage() {
     >
       <div className="flex flex-col md:flex-row h-full -mx-4 md:-mx-6 -mt-4 md:-mt-6">
         {pageLoading ? (
-           <div className="p-6 w-full">
-               <SkeletonGrid count={3} />
-               <div className="mt-8"></div>
-               <SkeletonList count={4} />
-           </div>
+          <div className="p-6 w-full">
+            <SkeletonGrid count={3} />
+            <div className="mt-8"></div>
+            <SkeletonList count={4} />
+          </div>
         ) : results.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center w-full">
-            <div className="text-3xl mb-3">📊</div>
+            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3 text-lg font-bold text-gray-400">R</div>
             <p className="text-sm font-medium text-gray-700">No results yet</p>
             <p className="text-xs text-gray-400 mt-1">Results appear here once you end a poll</p>
             <button onClick={() => router.push('/dashboard/polls')}
-              className="mt-6 bg-[#1a2744] text-white text-xs px-5 py-2.5 rounded-lg hover:bg-[#243561] shadow-sm">
+              className="mt-6 bg-[var(--bg-sidebar)] text-white text-xs px-5 py-2.5 rounded-lg hover:bg-[var(--brand-primary-hover)] shadow-sm">
               View Active Polls
             </button>
           </div>
@@ -103,15 +103,14 @@ export default function ResultsPage() {
               <div className="flex-1 overflow-y-auto">
                 {results.map(r => (
                   <button key={r.id} onClick={() => setSelected(r.id)}
-                    className={`w-full text-left px-4 md:px-5 py-3.5 border-b border-gray-50 transition-colors ${
-                      selected === r.id ? 'bg-[#1a2744]/5 border-l-[3px] md:border-l-[4px] border-l-[#1a2744]' : 'border-l-[3px] border-l-transparent hover:bg-gray-50'
-                    }`}>
+                    className={`w-full text-left px-4 md:px-5 py-3.5 border-b border-gray-50 transition-colors ${selected === r.id ? 'bg-[var(--bg-sidebar)]/5 border-l-[3px] md:border-l-[4px] border-l-[var(--brand-primary)]' : 'border-l-[3px] border-l-transparent hover:bg-gray-50'
+                      }`}>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{r.courseCode}</span>
                     </div>
                     <p className="text-xs font-medium text-gray-800 line-clamp-2 pr-2">{r.question}</p>
                     <p className="text-[10px] text-gray-400 mt-1.5 flex items-center gap-1">
-                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
                       {Object.values(r.responses || {}).reduce((a, b) => a + b, 0)} responses
                     </p>
                   </button>
@@ -140,7 +139,7 @@ export default function ResultsPage() {
                       <p className="text-xs font-medium text-gray-600 mb-4 uppercase tracking-wider">Poll Summary</p>
                       <div className="grid grid-cols-2 gap-3 md:gap-4">
                         <div className="bg-gray-50 border border-gray-100 rounded-lg p-4">
-                          <p className="text-2xl md:text-3xl font-semibold text-[#1a2744]">
+                          <p className="text-2xl md:text-3xl font-semibold text-[var(--bg-sidebar)]">
                             {Object.values(activePoll.responses || {}).reduce((a, b) => a + b, 0)}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">Total responses</p>
@@ -171,13 +170,13 @@ export default function ResultsPage() {
 function ResultChart({ poll }: { poll: PollResult }) {
   const LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
   const COLORS = ['#1a2744', '#F5A623', '#1D9E75', '#378ADD', '#7F77DD', '#D85A30'];
-  const total  = Object.values(poll.responses || {}).reduce((a, b) => a + b, 0);
+  const total = Object.values(poll.responses || {}).reduce((a, b) => a + b, 0);
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 md:p-6 space-y-4">
       {poll.options.map((opt, i) => {
         const count = poll.responses?.[i] ?? 0;
-        const pct   = total > 0 ? Math.round((count / total) * 100) : 0;
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
         const isTop = count === Math.max(...Object.values(poll.responses || { 0: 0 })) && count > 0;
 
         return (
@@ -189,11 +188,11 @@ function ResultChart({ poll }: { poll: PollResult }) {
                   {LABELS[i]}
                 </span>
                 <span className="text-sm font-medium text-gray-800 leading-tight">{opt}</span>
-                {isTop && <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest bg-amber-50 border border-amber-200/50 text-[#F5A623] px-2 py-0.5 rounded shadow-sm">Top answer</span>}
+                {isTop && <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest bg-amber-50 border border-amber-200/50 text-[var(--brand-primary)] px-2 py-0.5 rounded shadow-sm">Top answer</span>}
               </div>
               <div className="flex items-center gap-3 text-xs md:text-sm text-gray-500 shrink-0">
                 <span className="tabular-nums font-medium">{count} votes</span>
-                <span className="font-bold text-[#1a2744] w-10 text-right tabular-nums">{pct}%</span>
+                <span className="font-bold text-[var(--bg-sidebar)] w-10 text-right tabular-nums">{pct}%</span>
               </div>
             </div>
             <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner flex">
@@ -202,7 +201,7 @@ function ResultChart({ poll }: { poll: PollResult }) {
                   style={{ width: `${Math.max(pct, 2)}%`, background: COLORS[i % COLORS.length] }} />
               ) : null}
             </div>
-            {isTop && <span className="sm:hidden inline-block mt-2 text-[10px] uppercase font-bold tracking-widest bg-amber-50 border border-amber-200/50 text-[#F5A623] px-2 py-0.5 rounded shadow-sm">Top answer</span>}
+            {isTop && <span className="sm:hidden inline-block mt-2 text-[10px] uppercase font-bold tracking-widest bg-amber-50 border border-amber-200/50 text-[var(--brand-primary)] px-2 py-0.5 rounded shadow-sm">Top answer</span>}
           </div>
         );
       })}

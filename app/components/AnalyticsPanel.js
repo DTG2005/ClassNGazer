@@ -64,10 +64,10 @@ export default function AnalyticsPanel({ onClose, courseId }) {
           {/* Summary cards */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
             {[
-              { label: 'Total Polls', value: stats.totalPolls, icon: '📊', color: 'var(--orange)' },
-              { label: 'Total Responses', value: stats.totalResponses, icon: '👥', color: 'var(--blue)' },
-              { label: 'Correct Answers', value: stats.totalCorrect, icon: '✅', color: 'var(--green)' },
-              { label: 'Avg Accuracy', value: stats.avgAccuracy + '%', icon: '🎯', color: stats.avgAccuracy >= 70 ? 'var(--green)' : stats.avgAccuracy >= 40 ? 'var(--orange)' : 'var(--red)' },
+              { label: 'Total Polls', value: stats.totalPolls, icon: 'Polls', color: 'var(--orange)' },
+              { label: 'Total Responses', value: stats.totalResponses, icon: 'Users', color: 'var(--blue)' },
+              { label: 'Correct Answers', value: stats.totalCorrect, icon: '✓', color: 'var(--green)' },
+              { label: 'Avg Accuracy', value: stats.avgAccuracy + '%', icon: '◎', color: stats.avgAccuracy >= 70 ? 'var(--green)' : stats.avgAccuracy >= 40 ? 'var(--orange)' : 'var(--red)' },
             ].map((s, i) => (
               <div key={i} style={{ padding: '14px', background: 'var(--gray-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-100)' }}>
                 <div style={{ fontSize: '16px', marginBottom: '4px' }}>{s.icon}</div>

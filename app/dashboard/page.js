@@ -24,7 +24,7 @@ function JoinCodeModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center" onClick={e => e.stopPropagation()}>
-        <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4 text-2xl">✅</div>
+        <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4 text-sm font-bold text-green-600">✓</div>
         <h2 className="text-base font-semibold text-gray-900 mb-1">Course Created!</h2>
         <p className="text-xs text-gray-400 mb-5">Share this join code with your students</p>
         <p className="text-xs text-gray-500 mb-2">&quot;{courseTitle}&quot;</p>
@@ -267,7 +267,7 @@ function TeacherDashboard({ user, role }) {
           <SkeletonGrid count={3} />
         ) : courses.length === 0 ? (
           <div className="bg-white border border-dashed border-gray-200 rounded-xl px-4 py-12 md:py-16 flex flex-col items-center justify-center text-center mb-6">
-            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-xl">📚</div>
+            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-lg font-bold text-gray-400">C</div>
             <p className="text-sm font-medium text-gray-700">No courses yet</p>
             <p className="text-xs text-gray-400 mt-1 max-w-[200px] mb-5">Click &quot;Create Course&quot; to add your first one and get a join code for students</p>
             <button onClick={() => setShowModal(true)}
@@ -344,7 +344,7 @@ function StudentDashboard({ user }) {
         user={user}
         activeMenu="My Courses"
         onJoinCourse={() => setShowJoinModal(true)}
-        headerTitle={`Welcome back, ${firstName} 👋`}
+        headerTitle={`Welcome back, ${firstName}`}
         headerSubtitle={new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         headerAction={
           <button onClick={() => setShowJoinModal(true)}
@@ -366,7 +366,7 @@ function StudentDashboard({ user }) {
           <SkeletonGrid count={4} />
         ) : courses.length === 0 ? (
           <div className="bg-white border border-dashed border-gray-200 rounded-xl px-4 py-12 md:py-16 flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-xl">🎓</div>
+            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-4 text-lg font-bold text-gray-400">S</div>
             <p className="text-sm font-medium text-gray-700">No courses yet</p>
             <p className="text-xs text-gray-400 mt-1 max-w-[200px] mb-5">Ask your professor for a join code to get started</p>
             <button onClick={() => setShowJoinModal(true)}

@@ -161,7 +161,7 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
       if (!isEditing) localStorage.removeItem('poll_draft');
     } catch (e) {
       console.error(e);
-      alert(`⚠️ Error: ${e.message || 'Error uploading images or saving poll. Check console.'}`);
+      alert(`Error: ${e.message || 'Error uploading images or saving poll. Check console.'}`);
     }
     setSubmitting(false);
   };
@@ -198,7 +198,7 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
             if (selected) {
               // Enforce 5MB limit before trusting the payload to the internet
               if (selected.size > 5 * 1024 * 1024) {
-                alert("⚠️ Image size is too large! Please select an image smaller than 5MB.");
+                alert("Image size is too large! Please select an image smaller than 5MB.");
                 e.target.value = null;
                 return;
               }
@@ -216,7 +216,7 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-200)'; e.currentTarget.style.borderColor = 'var(--gray-500)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--gray-100)'; e.currentTarget.style.borderColor = 'var(--gray-400)'; }}
           >
-            <span style={{ fontSize: '14px' }}>📷</span> Add Image
+            <span style={{ fontSize: '14px' }}>+</span> Add Image
           </button>
         ) : (
           <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -288,7 +288,7 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
                 ) : (
                   <input style={{ flex: 1, fontSize: '13px', color: 'var(--ink)', background: 'transparent', border: 'none', outline: 'none', fontFamily: 'DM Mono, monospace' }} placeholder={`Option ${getLabel(i)} — LaTeX ok`} value={o.text} onChange={e => { const n = [...options]; n[i].text = e.target.value; setOptions(n); }} />
                 )}
-                {options.length > 2 && !preview && <button style={{ border: 'none', background: 'transparent', color: 'var(--red)', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }} onClick={() => handleRemoveOption(i)}>🗑</button>}
+                {options.length > 2 && !preview && <button style={{ border: 'none', background: 'transparent', color: 'var(--red)', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }} onClick={() => handleRemoveOption(i)}>×</button>}
                 <button style={{ width: '28px', height: '28px', borderRadius: '7px', flexShrink: 0, background: isCorrect ? '#4ADE80' : 'var(--gray-100)', color: isCorrect ? 'white' : 'var(--gray-400)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }} onClick={() => toggleCorrect(i)}>✓</button>
               </div>
               {!preview && <ImageInput file={o.image} setFile={(file) => { const n = [...options]; n[i].image = file; setOptions(n); }} />}
@@ -326,9 +326,9 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
           <label style={lbl}>Launch Mode</label>
           <div style={{ display: 'flex', gap: '8px' }}>
             {[
-              { key: 'live', icon: '🚀', label: 'Go Live Now', desc: 'Starts immediately' },
-              { key: 'schedule', icon: '📅', label: 'Schedule', desc: 'Auto-starts at set time' },
-              { key: 'draft', icon: '📝', label: 'Save Draft', desc: 'Start manually later' },
+              { key: 'live', icon: '▶', label: 'Go Live Now', desc: 'Starts immediately' },
+              { key: 'schedule', icon: '◷', label: 'Schedule', desc: 'Auto-starts at set time' },
+              { key: 'draft', icon: '—', label: 'Save Draft', desc: 'Start manually later' },
             ].map(m => (
               <button key={m.key} onClick={() => setMode(m.key)}
                 style={{ flex: 1, padding: '12px 8px', borderRadius: 'var(--radius-md)', border: `2px solid ${mode === m.key ? 'var(--orange)' : 'var(--gray-100)'}`, background: mode === m.key ? 'var(--orange-pale)' : 'var(--gray-50)', textAlign: 'center', transition: 'all 0.15s' }}>
@@ -373,7 +373,7 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
             color: isValid ? 'white' : 'var(--gray-400)',
             boxShadow: isValid ? (isEditing ? 'none' : mode === 'schedule' ? '0 8px 24px rgba(59,130,246,0.2)' : mode === 'draft' ? 'none' : 'var(--shadow-orange)') : 'none',
           }}>
-          {submitting ? 'Uploading...' : isEditing ? '💾 Save Changes' : mode === 'live' ? '🚀 Launch Poll' : mode === 'schedule' ? '📅 Schedule Poll' : '📝 Save Draft'}
+          {submitting ? 'Uploading...' : isEditing ? 'Save Changes' : mode === 'live' ? 'Launch Poll' : mode === 'schedule' ? 'Schedule Poll' : 'Save Draft'}
         </button>
       </div>
     </div></div>

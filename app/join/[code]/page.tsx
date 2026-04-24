@@ -60,7 +60,7 @@ export default function JoinCoursePage() {
 
         {status === 'needsAuth' && (
           <>
-            <div style={{ fontSize: '40px', marginBottom: '16px' }}>🔑</div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '20px', fontWeight: 800, color: 'var(--orange)' }}>!</div>
             <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--ink)', marginBottom: '8px' }}>Sign in to Join</h1>
             <p style={{ fontSize: '14px', color: 'var(--gray-600)', marginBottom: '8px' }}>
               You need to be signed in to join a course with code:
@@ -85,7 +85,7 @@ export default function JoinCoursePage() {
 
         {status === 'success' && (
           <>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px', fontWeight: 800, color: '#15803D' }}>✓</div>
             <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#15803D', marginBottom: '8px' }}>
               {courseName ? `Joined ${courseName}!` : 'Already enrolled!'}
             </h1>
@@ -95,7 +95,7 @@ export default function JoinCoursePage() {
 
         {status === 'error' && (
           <>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--red-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px', fontWeight: 800, color: 'var(--red)' }}>✕</div>
             <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--red)', marginBottom: '8px' }}>Couldn&apos;t Join</h1>
             <p style={{ fontSize: '14px', color: 'var(--gray-600)', marginBottom: '20px' }}>{error}</p>
             <div style={{ display: 'flex', gap: '8px' }}>

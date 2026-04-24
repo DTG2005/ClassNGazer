@@ -243,7 +243,7 @@ export const pollDatabase = {
 
   // ========== STUDENT RESPONSES ==========
 
-  // ✅ FIXED: Now updates BOTH Realtime DB (live) AND Firestore (permanent)
+  // FIXED: Now updates BOTH Realtime DB (live) AND Firestore (permanent)
   async submitResponse(pollId, studentId, studentName, responseIndex) {
     try {
       // 1. Check for duplicate in Realtime DB
@@ -311,10 +311,10 @@ export const pollDatabase = {
         await set(countRef, (countSnap.val() || 0) + 1);
       }
 
-      console.log("📝 Response submitted/updated by:", studentName);
+      console.log("Response submitted/updated by:", studentName);
       return true;
     } catch (error) {
-      console.error("❌ Error submitting response:", error);
+      console.error("Error submitting response:", error);
       throw error;
     }
   },

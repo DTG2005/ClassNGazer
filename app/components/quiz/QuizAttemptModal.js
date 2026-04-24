@@ -305,7 +305,7 @@ export default function QuizAttemptModal({ quiz, onClose, onSubmitted, studentId
                   </div>
                   {(q.solution || q.solutionImage) && (
                     <div style={{ margin:'0 14px 12px', padding:'10px 12px', background:'#FFFBEB', border:'1px solid #FDE68A', borderRadius:'8px' }}>
-                      <div style={{ fontSize:'10px', fontWeight:700, color:'#92400E', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'5px' }}>💡 Solution</div>
+                      <div style={{ fontSize:'10px', fontWeight:700, color:'#92400E', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'5px' }}>Solution</div>
                       {q.solution && <div style={{ fontSize:'12px', color:'#78350F', lineHeight:1.5 }}><LatexInline text={q.solution} /></div>}
                       {q.solutionImage && (
                         <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', width: '100%' }}>

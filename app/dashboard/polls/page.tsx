@@ -112,7 +112,7 @@ export default function ActivePollsPage() {
         <SkeletonList count={4} />
       ) : active.length === 0 && draft.length === 0 && polls.length === 0 ? (
         <div className="bg-white border border-dashed border-gray-200 rounded-xl py-12 md:py-16 flex flex-col items-center text-center px-4">
-          <div className="text-3xl mb-3">🗳️</div>
+          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3 text-lg font-bold text-gray-400">P</div>
           <p className="text-sm font-medium text-gray-700">No polls yet</p>
           <p className="text-xs text-gray-400 mt-1 mb-4">Go to a course to create your first poll</p>
           <button onClick={() => router.push('/dashboard/courses')}
@@ -141,7 +141,7 @@ export default function ActivePollsPage() {
           {/* Draft polls */}
           {draft.length > 0 && (
             <div>
-              <p className="text-xs uppercase tracking-wider text-gray-400 mb-3">📋 Drafts — ready to start</p>
+              <p className="text-xs uppercase tracking-wider text-gray-400 mb-3">Drafts — ready to start</p>
               <div className="space-y-3">
                 {draft.map(poll => (
                   <PollRow key={poll.id} poll={poll} acting={acting}
