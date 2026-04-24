@@ -261,6 +261,28 @@ export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
   });
   const [preview, setPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittedRef = useRef(false); // prevents auto-save from re-writing after submit
+
+  // Auto-save draft to localStorage (skipped once submitted)
+  useEffect(() => {
+    if (isEditing || submittedRef.current) return;
+    const draftData = {
+      title,
+      timer,
+      negativeMarking,
+      shuffleQ,
+      shuffleOpts,
+      questions: questions.map(q => ({
+        ...q,
+        questionImage: null,
+        solutionImage: null,
+        options: q.options.map(o => ({ ...o, image: null }))
+      }))
+    };
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('quiz_draft', JSON.stringify(draftData));
+    }
+  }, [title, timer, negativeMarking, shuffleQ, shuffleOpts, questions, isEditing]);
 
   // Sync timer mins/secs strings → total seconds
   useEffect(() => {
@@ -312,6 +334,13 @@ export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
     const totalSecs = (parseInt(timerMins, 10) || 0) * 60 + (parseInt(timerSecs, 10) || 0);
     if (totalSecs < 30) { alert('Minimum quiz duration is 30 seconds.'); return; }
 
+    // Clear draft immediately — prevents auto-save from writing stale data
+    // back to localStorage before the component unmounts
+    if (!isEditing) {
+      submittedRef.current = true;
+      if (typeof localStorage !== 'undefined') localStorage.removeItem('quiz_draft');
+    }
+
     setSubmitting(true);
     try {
       // Upload all images
@@ -342,11 +371,12 @@ export default function AddQuizModal({ onClose, onAdd, onEdit, initialData }) {
         await onAdd(payload);
         if (typeof localStorage !== 'undefined') localStorage.removeItem('quiz_draft');
       }
+      onClose(); // always close modal after successful save
     } catch (e) {
       console.error(e);
-      alert(`Error: ${e.message || 'Failed to save quiz. Check console.'}`);
+      alert(`⚠️ Error: ${e.message || 'Failed to save quiz. Check console.'}`);
+      setSubmitting(false); // only reset on error
     }
-    setSubmitting(false);
   };
 
   const totalMarks = questions.reduce((s, q) => s + (Number(q.marks) || 0), 0);

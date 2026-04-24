@@ -240,16 +240,19 @@ export default function ClassroomView({ user, courseId, courseName, courseCode, 
         solutionImage: d.solutionImage || null,
       });
 
+      // Close modal immediately after creation — before status update so the
+      // live banner never appears behind an open modal
+      setShowAddPoll(false);
+
       if (d.mode === 'live') {
         await pollDatabase.updatePollStatus(id, 'active');
-        showToast('Poll is now live', 'success');
+        showToast('Poll is now live 🚀', 'success');
       } else if (d.mode === 'schedule') {
         await pollDatabase.updatePoll(id, { status: 'scheduled', scheduledFor: d.scheduledFor });
-        showToast('Poll scheduled', 'success');
+        showToast('Poll scheduled 📅', 'success');
+      } else {
+        showToast('Poll saved as draft 📝', 'success');
       }
-
-      fetchPolls();
-      setShowAddPoll(false);
     } catch (e) { showToast(e.message, 'error'); }
   };
 

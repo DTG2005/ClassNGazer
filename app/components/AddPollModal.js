@@ -68,12 +68,13 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
   const [scheduleTime, setScheduleTime] = useState('');
   const [preview, setPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittedRef = useRef(false); // prevents auto-save from re-writing after submit
 
 
 
-  // Save draft to localStorage
+  // Save draft to localStorage (skipped once submitted)
   useEffect(() => {
-    if (isEditing) return;
+    if (isEditing || submittedRef.current) return;
     const draft = {
       question,
       topic,
@@ -120,6 +121,13 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
     if (correctIndices.length === 0) return;
     if (options.some(o => !o.text.trim() && !o.image)) return;
 
+    // Clear draft immediately — prevents the auto-save effect from writing
+    // stale data back to localStorage before the component unmounts
+    if (!isEditing) {
+      submittedRef.current = true;
+      localStorage.removeItem('poll_draft');
+    }
+
     setSubmitting(true);
     try {
       const qImgUrl = await uploadFile(questionImage);
@@ -159,11 +167,12 @@ export default function AddPollModal({ onClose, onAdd, onEdit, initialData }) {
       }
       await onAdd(pollData);
       if (!isEditing) localStorage.removeItem('poll_draft');
+      onClose(); // always close modal after successful submission
     } catch (e) {
       console.error(e);
-      alert(`Error: ${e.message || 'Error uploading images or saving poll. Check console.'}`);
+      alert(`⚠️ Error: ${e.message || 'Error uploading images or saving poll. Check console.'}`);
+      setSubmitting(false); // only reset submitting on error; onClose unmounts on success
     }
-    setSubmitting(false);
   };
 
   const isValid = (question.trim() || questionImage) && correctIndices.length > 0 && options.every(o => o.text.trim() || o.image);
