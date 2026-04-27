@@ -4,10 +4,9 @@
   <img src="/public/favicon.svg" alt="ClassNGazer Logo" width="120"/>
 </p>
 
-
 <h1 align="center">ClassNGazer</h1>
-<p align="center">Keep your Class's Gaze Steady</p>
-
+<h4 align="center">Keep your Class's Gaze Steady</h4>
+---
 This is a repository of the ClassNGazer app which allows the Faculties to:-
 
 - **Create and Manage polls for the class on the go or in advance**
