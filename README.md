@@ -1,8 +1,14 @@
 ![Vercel Deploy](https://deploy-badge.vercel.app/vercel/class-n-gazer?style=for-the-badge)
 
-# ClassNGazer
+<p align="center">
+  <img src="/public/favicon.svg" alt="ClassNGazer Logo" width="120"/>
+</p>
 
-This is a WIP repository of the ClassNGazer app which allows the Faculties to:-
+
+<h1 align="center">ClassNGazer</h1>
+<p align="center">Keep your Class's Gaze Steady</p>
+
+This is a repository of the ClassNGazer app which allows the Faculties to:-
 
 - **Create and Manage polls for the class on the go or in advance**
 - **Allow belated access to the Poll responses**
