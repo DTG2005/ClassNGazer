@@ -1,3 +1,5 @@
+![Vercel](https://vercelbadge.vercel.app/api/class-n-gazer)
+
 #ClassNGazer
 
 This is a WIP repository of the ClassNGazer app which allows the Faculties to:-
